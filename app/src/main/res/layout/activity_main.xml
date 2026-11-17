@@ -1,0 +1,470 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页「全屏融合 + 悬浮卡片」结构：
+     根 FrameLayout 叠两层 ——
+      ① 主体 LinearLayout 从屏幕顶端 y=0 铺满（地图延伸到状态栏后面）；
+      ② 底部卡片导航浮在主体之上，左右留边、大圆角，不占布局高度。
+     所有避让（状态栏 / 手势条 / 卡片高度）由 MainActivity 按 WindowInsets 动态设置。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <!-- ① 主体：铺满全屏 -->
+    <LinearLayout
+        android:id="@+id/mainContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- 统一顶栏：设备 / 我的页显示（渐变背景由 fitTopBar 设置并撑到状态栏），
+             地图首页隐藏，让地图铺到状态栏后面 -->
+        <LinearLayout
+            android:id="@+id/topBar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@color/brand"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+            <TextView
+                android:id="@+id/tvTopTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/app_name"
+                android:textColor="#FFFFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 内容区：三个页面叠放，通过 visibility 切换 -->
+        <FrameLayout
+            android:id="@+id/contentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <!-- ① 地图首页（全屏融合） -->
+            <FrameLayout
+                android:id="@+id/pageMap"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <!-- MapLibre MapView 由代码创建并 addView 到这个容器 -->
+                <FrameLayout
+                    android:id="@+id/mapHolder"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <!-- 顶部白色渐变遮罩：保证状态栏深色图标与搜索卡片可读 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="120dp"
+                    android:layout_gravity="top"
+                    android:background="@drawable/bg_map_top_scrim" />
+
+                <!-- 顶部悬浮搜索卡片：搜索入口 + 告警铃铛。
+                     layout_marginTop 由代码按状态栏高度动态覆盖 -->
+                <LinearLayout
+                    android:id="@+id/searchCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_gravity="top"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
+                    android:layout_marginTop="40dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_nav_card"
+                    android:elevation="8dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="6dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_devices"
+                        android:contentDescription="@string/devices_search" />
+
+                    <TextView
+                        android:id="@+id/tvMapSearch"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:gravity="center_vertical"
+                        android:text="@string/devices_search"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:background="?android:attr/selectableItemBackground" />
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="22dp"
+                        android:background="@color/divider" />
+
+                    <!-- 全局告警入口（铃铛 + 未读红点），从顶栏移入搜索卡片 -->
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="4dp">
+                        <ImageButton
+                            android:id="@+id/btnBell"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:src="@drawable/ic_bell"
+                            android:scaleType="centerInside"
+                            android:contentDescription="@string/events_title" />
+                        <View
+                            android:id="@+id/vUnreadDot"
+                            android:layout_width="9dp"
+                            android:layout_height="9dp"
+                            android:layout_gravity="end|top"
+                            android:layout_marginEnd="7dp"
+                            android:layout_marginTop="7dp"
+                            android:background="@drawable/bg_badge_dot"
+                            android:visibility="gone" />
+                    </FrameLayout>
+                </LinearLayout>
+
+                <!-- 右下角浮动按钮：定位 / 图层。
+                     layout_marginBottom 由代码按卡片导航高度动态覆盖 -->
+                <LinearLayout
+                    android:id="@+id/fabGroup"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="108dp">
+
+                    <ImageButton
+                        android:id="@+id/btnLayers"
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:background="@drawable/bg_card"
+                        android:src="@drawable/ic_layers"
+                        android:scaleType="centerInside"
+                        android:elevation="4dp"
+                        android:contentDescription="@string/map_layers" />
+
+                    <ImageButton
+                        android:id="@+id/btnLocate"
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_card"
+                        android:src="@drawable/ic_locate"
+                        android:scaleType="centerInside"
+                        android:elevation="4dp"
+                        android:contentDescription="@string/map_locate" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- ② 设备列表 -->
+            <LinearLayout
+                android:id="@+id/pageDevices"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <EditText
+                    android:id="@+id/etSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_pill_search"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:hint="@string/devices_search"
+                    android:inputType="text"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:singleLine="true" />
+
+                <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                    android:id="@+id/swipeRefresh"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1">
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvDevices"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipToPadding="false"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="8dp" />
+                </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+                <TextView
+                    android:id="@+id/tvDevicesEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/devices_empty"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- ③ 我的 / 设置 -->
+            <ScrollView
+                android:id="@+id/pageMine"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:visibility="gone">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_card"
+                        android:padding="4dp">
+
+                        <TextView
+                            android:id="@+id/rowServer"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/mine_server"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:background="?android:attr/selectableItemBackground" />
+
+                        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
+
+                        <TextView
+                            android:id="@+id/rowMap"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/mine_map"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:background="?android:attr/selectableItemBackground" />
+
+                        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
+
+                        <TextView
+                            android:id="@+id/rowAbout"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/mine_about"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:background="?android:attr/selectableItemBackground" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_card"
+                        android:layout_marginTop="12dp"
+                        android:padding="4dp">
+
+                        <TextView
+                            android:id="@+id/rowEvents"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/mine_events"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:background="?android:attr/selectableItemBackground" />
+
+                        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
+
+                        <TextView
+                            android:id="@+id/rowGeofences"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/mine_geofences"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:background="?android:attr/selectableItemBackground" />
+
+                        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
+
+                        <TextView
+                            android:id="@+id/rowReports"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/mine_reports"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:background="?android:attr/selectableItemBackground" />
+                    </LinearLayout>
+
+                    <!-- 用户与设备管理（一期 P0）。用户管理行默认隐藏，等 currentUser() 判定权限后再显示 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_card"
+                        android:layout_marginTop="12dp"
+                        android:padding="4dp">
+
+                        <TextView
+                            android:id="@+id/rowDeviceManage"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/mine_device_manage"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:background="?android:attr/selectableItemBackground" />
+
+                        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" />
+
+                        <TextView
+                            android:id="@+id/rowUserManage"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/mine_user_manage"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:background="?android:attr/selectableItemBackground"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnLogout"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="24dp"
+                        android:background="@drawable/selector_brand_button"
+                        android:text="@string/mine_logout"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:stateListAnimator="@null" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:text="@string/mine_version"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </ScrollView>
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- ② 悬浮卡片式底部导航：左右留边、大圆角、白底阴影，浮在内容之上。
+         边距由代码叠加手势导航栏 inset，避免被系统手势条压住 -->
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="10dp"
+        android:minHeight="66dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_nav_card"
+        android:elevation="12dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp">
+
+        <LinearLayout
+            android:id="@+id/tabMap"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+            <ImageView android:id="@+id/ivMap"
+                android:layout_width="24dp" android:layout_height="24dp"
+                android:src="@drawable/ic_map" />
+            <TextView android:id="@+id/tvMap"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/nav_map" android:textColor="@color/brand"
+                android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tabDevices"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+            <ImageView android:id="@+id/ivDevices"
+                android:layout_width="24dp" android:layout_height="24dp"
+                android:src="@drawable/ic_devices" />
+            <TextView android:id="@+id/tvDevices"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/nav_devices" android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tabMine"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+            <ImageView android:id="@+id/ivMine"
+                android:layout_width="24dp" android:layout_height="24dp"
+                android:src="@drawable/ic_mine" />
+            <TextView android:id="@+id/tvMine"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/nav_mine" android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

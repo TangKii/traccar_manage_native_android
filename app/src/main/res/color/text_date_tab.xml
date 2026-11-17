@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 回放页日期按钮文字色：未选中=品牌蓝，选中=白 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true" android:color="#FFFFFFFF" />
+    <item android:color="@color/brand" />
+</selector>

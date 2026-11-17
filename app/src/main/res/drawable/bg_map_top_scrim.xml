@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 地图顶部白色渐变遮罩：从半透明白过渡到全透明。
+     地图铺到状态栏后，保证状态栏深色图标与悬浮搜索卡片在浅色/卫星底图上都清晰，
+     同时不遮挡地图主体，维持全屏沉浸感。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#B3FFFFFF"
+        android:centerColor="#59FFFFFF"
+        android:endColor="#00FFFFFF"
+        android:type="linear" />
+</shape>

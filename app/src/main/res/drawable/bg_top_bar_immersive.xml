@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页地图专用的半透明沉浸式顶栏：
+     顶部为较高不透明度深蓝（保证白色状态栏图标与标题可读），
+     向下渐变为半透明品牌蓝，让地图从顶栏下方隐约透出，实现「全屏融合」。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#E62F6CE0"
+        android:centerColor="#B33E80FE"
+        android:endColor="#4D3E80FE"
+        android:type="linear" />
+</shape>

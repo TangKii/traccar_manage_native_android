@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 本次修复新增的界面/通知/错误文案。
+     约定：所有用户可见文字只在本文件与 strings.xml 中维护，Kotlin 代码不再出现中文常量。 -->
+<resources>
+    <!-- 通用 -->
+    <string name="action_save">保存</string>
+    <string name="action_refresh">刷新</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_confirm_delete">确认删除</string>
+    <string name="common_saved">已保存</string>
+    <string name="common_save_failed">保存失败</string>
+    <string name="common_deleted">已删除</string>
+    <string name="common_delete_failed">删除失败</string>
+    <string name="common_load_failed">加载失败</string>
+    <string name="common_unknown_error">未知错误</string>
+    <string name="common_network_error">网络错误</string>
+    <string name="common_unknown">未知</string>
+    <string name="common_unknown_address">未知地址</string>
+    <string name="common_connect_failed">连接失败</string>
+    <string name="common_load_failed_with_reason">加载失败：%1$s</string>
+    <string name="common_unknown_device">未命名设备</string>
+    <string name="common_unknown_geofence">未命名围栏</string>
+    <string name="common_unknown_group">未分组</string>
+    <string name="common_unknown_user">未命名用户</string>
+
+    <!-- 设备编辑 / 管理 -->
+    <string name="device_no_add_permission">当前账号不可新增设备（readonly / deviceReadonly / deviceLimit=0）</string>
+    <string name="device_readonly_hint">当前账号为只读，仅可查看设备信息</string>
+    <string name="device_name_required">设备名称不能为空</string>
+    <string name="device_unique_id_required">设备唯一ID不能为空（用于设备上报识别，全局唯一）</string>
+    <string name="device_delete_title">删除设备</string>
+    <string name="device_delete_message">确定删除「%1$s」吗？\n\n该设备的历史位置、事件与报表数据会一并被清除，且不可恢复。</string>
+    <string name="device_search_hint">搜索名称 / 设备ID / 型号</string>
+    <string name="device_form_name">设备名称 *</string>
+    <string name="device_form_name_hint">例如：粤A·运输车01</string>
+    <string name="device_form_unique">设备唯一ID *（IMEI / 编号，全局唯一）</string>
+    <string name="device_form_unique_hint">例如：868123456789012</string>
+    <string name="device_form_group">所属分组</string>
+    <string name="device_form_phone">电话 / SIM 号</string>
+    <string name="device_form_model">型号</string>
+    <string name="device_form_contact">联系人</string>
+    <string name="device_form_category">分类 / 图标</string>
+    <string name="device_form_optional">可留空</string>
+    <string name="device_form_disabled">禁用该设备（停止接收数据，但保留历史记录）</string>
+    <string name="device_manage_readonly">当前账号为只读（readonly / deviceReadonly），仅可查看设备</string>
+
+    <!-- 事件 -->
+    <string name="event_device_label">设备 %1$d</string>
+    <string name="event_load_failed">加载事件失败：%1$s</string>
+    <string name="event_load_failed_short">事件加载失败</string>
+    <string name="event_exception_without_message">%1$s（异常未提供描述）</string>
+    <string name="events_no_device">暂无设备，无法查询告警</string>
+
+    <!-- 登录 / 配置 -->
+    <string name="login_empty_credentials">请输入账号和密码</string>
+    <string name="login_failed">登录失败</string>
+    <string name="setup_enter_server">请输入服务器地址</string>
+    <string name="setup_invalid_server">地址格式不正确，例如 http://192.168.1.10:8082</string>
+
+    <!-- 首页 / 回放 / 轨迹 -->
+    <string name="map_speed_snippet">速度 %1$.0f km/h</string>
+    <string name="map_about_text">纯原生版 v1.0\n基于 Traccar 6.17.0 服务端\n地图：高德 GCJ-02 免 Key 瓦片</string>
+    <string name="map_no_position">暂无位置信息</string>
+    <string name="replay_time_dirty">时间已调整，请点击「应用」加载</string>
+    <string name="replay_load_failed">加载失败</string>
+    <string name="trip_loading">加载轨迹中…</string>
+    <string name="trip_missing_params">缺少设备/时间参数</string>
+    <string name="trip_no_points">该时段无可绘制轨迹点</string>
+    <string name="trip_load_failed">轨迹加载失败：%1$s</string>
+    <string name="trip_points_one">轨迹点 1 个</string>
+    <string name="trip_points_with_gaps">轨迹点 %1$d 个 · 断点 %2$d 处（虚线）· 绿点=起点 红点=终点</string>
+    <string name="trip_points">轨迹点 %1$d 个 · 绿点=起点 红点=终点</string>
+
+    <!-- 报表 -->
+    <string name="reports_no_device">没有可用设备，无法生成报表</string>
+    <string name="reports_no_device_short">无可用设备</string>
+    <string name="reports_load_devices_failed">加载设备失败：%1$s</string>
+    <string name="reports_load_devices_failed_short">设备加载失败：%1$s</string>
+    <string name="reports_select_device">请先在上方选择设备</string>
+    <string name="reports_load_failed">报表加载失败：%1$s</string>
+    <string name="report_trip_detail">里程 %1$.1f km · 时长 %2$s · 最高 %3$.0f km/h</string>
+
+    <!-- 用户管理 -->
+    <string name="user_password_new">密码 *（新建必填）</string>
+    <string name="user_password_edit">密码（留空表示不修改）</string>
+    <string name="user_email_fixed">该账号邮箱由服务端固定，不可修改</string>
+    <string name="user_no_permission">当前账号无用户管理权限</string>
+    <string name="user_non_admin_hint">当前账号非管理员：只能修改基础资料，权限/限额由管理员维护</string>
+    <string name="user_name_required">名称不能为空</string>
+    <string name="user_email_required">邮箱 / 登录账号不能为空</string>
+    <string name="user_email_invalid">邮箱格式不正确</string>
+    <string name="user_password_required">新建用户必须设置密码</string>
+    <string name="user_expiration_format">过期时间格式应为 2027-01-01T00:00:00Z（ISO-8601 UTC，带 Z），或留空表示永不过期</string>
+    <string name="user_delete_title">删除用户</string>
+    <string name="user_delete_message">确定删除用户「%1$s」吗？\n\n该用户及其关联数据会一并被清除，且不可恢复。</string>
+    <string name="user_search_hint">搜索名称 / 邮箱</string>
+    <string name="user_form_name">名称 *</string>
+    <string name="user_form_email">邮箱 / 登录账号 *</string>
+    <string name="user_form_password_hint">留空表示不修改密码</string>
+    <string name="user_form_phone">电话</string>
+    <string name="user_form_admin_section">权限与限额（仅管理员可改）</string>
+    <string name="user_form_admin">管理员</string>
+    <string name="user_form_readonly">只读账号（禁止所有写操作）</string>
+    <string name="user_form_device_readonly">设备只读（可看不可改设备）</string>
+    <string name="user_form_disabled">禁用该用户</string>
+    <string name="user_form_device_limit">设备限额（-1 不限，0 禁止新增设备）</string>
+    <string name="user_form_user_limit">子用户限额（0 表示不能创建子用户）</string>
+    <string name="user_form_expiration">过期时间（ISO-8601 UTC，留空=永不过期）</string>
+    <string name="user_manage_readonly">当前账号非管理员：只能修改基础资料，权限/限额字段不可见</string>
+
+    <!-- 用户角色 -->
+    <string name="role_admin">管理员</string>
+    <string name="role_readonly">只读</string>
+    <string name="role_disabled">已禁用</string>
+    <string name="role_manager">经理</string>
+    <string name="role_user">普通用户</string>
+
+    <!-- 事件类型 -->
+    <string name="event_sos">SOS求助</string>
+    <string name="event_alarm">报警</string>
+    <string name="event_alarm_with">报警·%1$s</string>
+    <string name="event_online">设备上线</string>
+    <string name="event_offline">设备离线</string>
+    <string name="event_unknown">设备未知</string>
+    <string name="event_inactive">设备不活跃</string>
+    <string name="event_moving">开始移动</string>
+    <string name="event_stopped">停止移动</string>
+    <string name="event_overspeed">超速报警</string>
+    <string name="event_fuel_drop">油量骤降</string>
+    <string name="event_geofence_enter">进入围栏</string>
+    <string name="event_geofence_exit">离开围栏</string>
+    <string name="event_ignition_on">点火启动</string>
+    <string name="event_ignition_off">熄火</string>
+    <string name="event_driver_changed">更换司机</string>
+    <string name="event_maintenance">维保提醒</string>
+    <string name="event_text_message">文本消息</string>
+    <string name="event_command_result">指令结果</string>
+    <string name="event_command_queued">指令已下发</string>
+    <string name="event_media">媒体文件</string>
+
+    <!-- 通知服务 -->
+    <string name="notif_timeout_log">前台服务达到系统运行时限（dataSync），停止告警轮询</string>
+    <string name="notif_poll_failed">告警轮询失败</string>
+    <string name="notif_cache_refreshed">设备缓存已刷新，共 %1$d 台</string>
+    <string name="notif_pushed">推送 %1$d 条新告警</string>
+    <string name="notif_title_multi">收到 %1$d 条新告警</string>
+    <string name="notif_suffix">等 %1$d 条</string>
+    <string name="notif_channel_name">设备告警</string>
+    <string name="notif_channel_desc">车辆告警与状态变化实时通知</string>
+    <string name="notif_foreground_text">正在监听设备告警…</string>
+
+    <!-- 崩溃日志弹窗 -->
+    <string name="crash_log_title">上一次崩溃日志（请截图反馈）</string>
+
+    <!-- 接口错误 -->
+    <string name="api_error_401">登录已过期或账号无权限（%1$s，HTTP 401）%2$s</string>
+    <string name="api_error_login_401">账号或密码错误，请重新输入（HTTP 401）%1$s</string>
+    <string name="api_error_session_404">登录状态已失效，请重新登录（HTTP 404）%1$s</string>
+    <string name="api_error_403">没有权限访问该接口（%1$s，HTTP 403，请确认账号未被禁用报表）%2$s</string>
+    <string name="api_error_400">请求参数有误（%1$s，HTTP 400）%2$s，请检查必填项与唯一标识是否重复</string>
+    <string name="api_error_404">接口不存在（%1$s，HTTP 404）%2$s，请检查服务器地址与版本</string>
+    <string name="api_error_other">服务器返回错误（%1$s，HTTP %2$d）%3$s</string>
+    <string name="api_error_connect">无法连接服务器：%1$s</string>
+    <string name="api_error_no_token">服务器未返回登录令牌</string>
+    <string name="api_error_events_range">事件查询缺少时间范围 from/to（/api/reports/events 必填）</string>
+    <string name="api_error_events_no_device">没有可查询的设备（/api/reports/events 至少需要一个 deviceId 或 groupId）</string>
+    <string name="api_error_no_detail">无错误描述</string>
+    <string name="api_error_empty_body">&lt;空响应&gt;</string>
+    <string name="api_error_parse">事件解析失败（%1$s: %2$s）：%3$s</string>
+
+    <!-- 网络策略 -->
+    <string name="error_public_http">出于安全考虑，公网地址只能使用 https://。局域网自建服务请填写内网 IP（如 http://192.168.1.10:8082）。当前地址：%1$s</string>
+
+    <!-- 地图 -->
+    <string name="map_attribution">© 高德地图 (GCJ-02)</string>
+</resources>

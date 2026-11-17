@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/brand"
+        android:paddingStart="8dp"
+        android:paddingEnd="16dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back"
+            android:scaleType="centerInside"
+            android:contentDescription="返回" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="@string/reports_title"
+            android:textColor="#FFFFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+        <!-- 设备 + 时间范围 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/reports_device"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <Spinner
+                android:id="@+id/spinnerDevice"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/bg_input"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="12dp">
+
+                <Button android:id="@+id/btnToday" android:layout_width="0dp" android:layout_height="40dp"
+                    android:layout_weight="1" android:text="@string/reports_today" android:textSize="13sp"
+                    android:stateListAnimator="@null" android:background="@drawable/bg_date_tab" />
+                <Button android:id="@+id/btnYesterday" android:layout_width="0dp" android:layout_height="40dp"
+                    android:layout_weight="1" android:layout_marginStart="10dp" android:text="@string/reports_yesterday"
+                    android:textSize="13sp" android:stateListAnimator="@null" android:background="@drawable/bg_date_tab" />
+                <Button android:id="@+id/btn7days" android:layout_width="0dp" android:layout_height="40dp"
+                    android:layout_weight="1" android:layout_marginStart="10dp" android:text="@string/reports_7days"
+                    android:textSize="13sp" android:stateListAnimator="@null" android:background="@drawable/bg_date_tab" />
+            </LinearLayout>
+
+            <Button android:id="@+id/btnCustom" android:layout_width="match_parent" android:layout_height="40dp"
+                android:layout_marginTop="10dp" android:text="@string/reports_custom" android:textSize="13sp"
+                android:stateListAnimator="@null" android:background="@drawable/bg_date_outline"
+                android:textColor="@color/brand" android:textStyle="bold" />
+
+            <!-- 自定义时间面板（精确到小时），默认隐藏 -->
+            <LinearLayout
+                android:id="@+id/customPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginTop="10dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="48dp" android:layout_height="wrap_content"
+                        android:text="@string/reports_from" android:textSize="13sp" android:textColor="@color/text_secondary" />
+                    <TextView android:id="@+id/tvFrom" android:layout_width="0dp" android:layout_height="40dp"
+                        android:layout_weight="1" android:gravity="center_vertical" android:paddingStart="12dp"
+                        android:background="@drawable/bg_input" android:text="@string/reports_from"
+                        android:textSize="13sp" android:textColor="@color/text_primary" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="10dp">
+                    <TextView android:layout_width="48dp" android:layout_height="wrap_content"
+                        android:text="@string/reports_to" android:textSize="13sp" android:textColor="@color/text_secondary" />
+                    <TextView android:id="@+id/tvTo" android:layout_width="0dp" android:layout_height="40dp"
+                        android:layout_weight="1" android:gravity="center_vertical" android:paddingStart="12dp"
+                        android:background="@drawable/bg_input" android:text="@string/reports_to"
+                        android:textSize="13sp" android:textColor="@color/text_primary" />
+                </LinearLayout>
+                <Button android:id="@+id/btnApply" android:layout_width="match_parent" android:layout_height="42dp"
+                    android:layout_marginTop="12dp" android:text="@string/reports_apply" android:textSize="14sp"
+                    android:stateListAnimator="@null" android:background="@drawable/selector_brand_button"
+                    android:textColor="#FFFFFFFF" android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 查询按钮 + 状态指示 -->
+            <Button android:id="@+id/btnQuery" android:layout_width="match_parent" android:layout_height="46dp"
+                android:layout_marginTop="14dp" android:text="@string/reports_query" android:textSize="15sp"
+                android:stateListAnimator="@null" android:background="@drawable/selector_brand_button"
+                android:textColor="#FFFFFFFF" android:textStyle="bold" />
+
+            <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:gravity="center" android:textSize="12sp"
+                android:textColor="@color/text_secondary" android:text="@string/reports_status_idle" />
+        </LinearLayout>
+
+        <!-- 汇总卡片 -->
+        <LinearLayout
+            android:id="@+id/summaryCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            android:padding="14dp"
+            android:background="@drawable/bg_card">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/reports_summary"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="10dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/tvSumDistance" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="--" android:textColor="@color/brand" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:text="@string/reports_distance" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:orientation="vertical" android:layout_marginStart="12dp">
+                    <TextView android:id="@+id/tvSumDuration" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="--" android:textColor="@color/brand" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:text="@string/reports_duration" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="12dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/tvSumMaxSpeed" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="--" android:textColor="@color/brand" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:text="@string/reports_maxspeed" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:orientation="vertical" android:layout_marginStart="12dp">
+                    <TextView android:id="@+id/tvSumAvgSpeed" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="--" android:textColor="@color/brand" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:text="@string/reports_avgspeed" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="12dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/tvSumFuel" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="--" android:textColor="@color/brand" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:text="@string/reports_fuel" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:orientation="vertical" android:layout_marginStart="12dp">
+                    <TextView android:id="@+id/tvCount" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="--" android:textColor="@color/brand" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:text="@string/reports_trips" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 行程列表标题 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:layout_marginStart="2dp"
+            android:text="@string/reports_trips"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <!-- 行程列表：用普通线性容器动态填充，避免 RecyclerView 嵌在 ScrollView 里
+             （wrap_content + 嵌套滚动）在条目较多时测量异常、列表显示不全的问题 -->
+        <LinearLayout
+            android:id="@+id/listReports"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:id="@+id/tvEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="@string/reports_empty"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

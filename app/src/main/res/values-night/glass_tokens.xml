@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 液态玻璃夜间调色板：玻璃体改用深色半透明，顶部高光与描边保留淡白以保证边缘可读。
+     资源已就绪；需将主题切到 DayNight 才会自动启用（当前工程为固定浅色主题，详见交付说明）。 -->
+<resources>
+    <color name="glass_tint">#CC101826</color>        <!-- 深色玻璃体 -->
+    <color name="glass_tint_soft">#B3101826</color>
+    <color name="glass_tint_over_map">#B3101826</color><!-- 浮在地图上的深色玻璃体：70%，兼顾透出感与可读性 -->
+    <color name="glass_tint_solid">#FF101826</color>  <!-- 降低透明度降级：不透明实体材质 -->
+    <color name="glass_highlight">#40FFFFFF</color>   <!-- 顶部长高光（淡白） -->
+    <color name="glass_stroke_color">#33FFFFFF</color><!-- 边缘描边 -->
+    <color name="glass_shadow">#80000000</color>      <!-- 落影 -->
+</resources>
