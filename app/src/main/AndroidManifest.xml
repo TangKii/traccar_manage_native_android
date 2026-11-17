@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 网络：访问自建 Traccar 服务与高德瓦片 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 应用未使用定位 SDK；MapLibre 依赖包会自带定位权限，这里显式移除，
+         避免安装包声明无实际用途的敏感权限 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" tools:node="remove" />
+    <!-- 告警实时推送：前台服务 + 通知 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:name=".App"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@style/Theme.TraccarNative">
+
+        <!-- 启动页：判断是否需要配置服务器 / 是否已登录 -->
+        <activity
+            android:name=".ui.SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TraccarNative.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".ui.SetupActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ui.LoginActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ui.MainActivity" android:exported="false" />
+        <activity android:name=".ui.DeviceDetailActivity" android:exported="false" />
+        <activity android:name=".ui.ReplayActivity" android:exported="false" />
+        <activity android:name=".ui.EventsActivity" android:exported="false" />
+        <activity android:name=".ui.GeofencesActivity" android:exported="false" />
+        <activity android:name=".ui.GeofenceMapActivity" android:exported="false" />
+        <activity android:name=".ui.ReportsActivity" android:exported="false" />
+        <activity android:name=".ui.TripMapActivity" android:exported="false" />
+        <!-- 用户与设备管理（一期 P0） -->
+        <activity android:name=".ui.DeviceManageActivity" android:exported="false" />
+        <activity android:name=".ui.DeviceEditActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ui.UserManageActivity" android:exported="false" />
+        <activity android:name=".ui.UserEditActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- 告警实时推送前台服务（dataSync 类型，常驻监听事件） -->
+        <service
+            android:name=".ui.NotificationService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+    </application>
+
+</manifest>

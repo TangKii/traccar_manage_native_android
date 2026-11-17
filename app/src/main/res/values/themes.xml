@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 基础主题：DayNight，浅色/深色由 values-night 覆写配色与状态栏图标明暗。
+         控件全部用原生 AppCompat / Material 单组件，主色手动指定。 -->
+    <style name="Theme.TraccarNative.Base" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorPrimaryDark">@color/brand_dark</item>
+        <item name="colorAccent">@color/brand</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <!-- 全站沉浸式：状态栏透明，让页面背景 / 地图延伸到状态栏后面 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+
+    <!-- 浅色主题：深色状态栏图标（页面为浅色底） -->
+    <style name="Theme.TraccarNative" parent="Theme.TraccarNative.Base">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
+    <!-- 启动页：蓝底，避免白屏闪烁 -->
+    <style name="Theme.TraccarNative.Splash" parent="Theme.TraccarNative">
+        <item name="android:windowBackground">@drawable/splash_bg</item>
+    </style>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 地图顶部遮罩（夜间）：深色渐隐，保证浅色状态栏图标与搜索卡片在暗色底图上清晰 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#B30B1220"
+        android:centerColor="#590B1220"
+        android:endColor="#000B1220"
+        android:type="linear" />
+</shape>

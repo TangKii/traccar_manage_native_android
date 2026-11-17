@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 液态玻璃（Liquid Glass）设计令牌。
+     对齐 android-liquid-glass-xml 规范的几何/模糊/光照默认值，并贴合本项目亮蓝主色。
+     浅色（白天）调色板：以半透明白为玻璃体，顶部高光用更亮的白，描边用极淡白。 -->
+<resources>
+    <!-- 几何：圆角 -->
+    <dimen name="glass_radius_large">28dp</dimen>   <!-- 大面板：对话框 / 抽屉 -->
+    <dimen name="glass_radius_medium">22dp</dimen>  <!-- 中面板：卡片 / 底部导航 -->
+    <dimen name="glass_radius_small">16dp</dimen>   <!-- 小控件：输入框 / 按钮 -->
+    <dimen name="glass_radius_nav">28dp</dimen>     <!-- 悬浮导航 -->
+    <dimen name="glass_radius_dialog">22dp</dimen>
+
+    <!-- 描边宽度 -->
+    <dimen name="glass_stroke">1dp</dimen>
+
+    <!-- 模糊半径（px，仅 API31+ 的动态模糊使用；此处为调参基准） -->
+    <integer name="glass_blur_light">14</integer>
+    <integer name="glass_blur_medium">22</integer>
+    <integer name="glass_blur_strong">30</integer>
+
+    <!-- 浅色材质色（context-aware：本应用浅色底为主） -->
+    <color name="glass_tint">#D9FFFFFF</color>        <!-- 玻璃体：85% 不透明白 -->
+    <color name="glass_tint_soft">#B3FFFFFF</color>   <!-- 较弱玻璃体 -->
+    <color name="glass_tint_over_map">#CCFFFFFF</color><!-- 浮在地图上的玻璃体：80%，兼顾透出感与可读性 -->
+    <color name="glass_tint_solid">#FFFFFFFF</color>  <!-- 降低透明度降级：不透明实体材质 -->
+    <color name="glass_highlight">#BFFFFFFF</color>   <!-- 顶部长高光 -->
+    <color name="glass_stroke_color">#40FFFFFF</color><!-- 边缘高光描边 -->
+    <color name="glass_shadow">#1A1E293B</color>      <!-- 落影（深色，保证浅底可见） -->
+</resources>

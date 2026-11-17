@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 主按钮：品牌蓝渐变 + 顶部高光（液态玻璃按钮观感）+ 圆角。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 主体渐变 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:startColor="#FF5B9BFF"
+                android:centerColor="#FF3E80FE"
+                android:endColor="#FF2F6CE0"
+                android:type="linear" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    <!-- 顶部高光带：上缘更亮的细渐变，模拟玻璃顶面反光 -->
+    <item android:top="1dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#33FFFFFF" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+</layer-list>

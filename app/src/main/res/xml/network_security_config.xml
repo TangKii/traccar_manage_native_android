@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 允许访问用户自建的 http:// 明文 Traccar 服务器（局域网常见）。
+     高德瓦片本身是 https，不受影响。上架前可按需收紧为仅特定域名。 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

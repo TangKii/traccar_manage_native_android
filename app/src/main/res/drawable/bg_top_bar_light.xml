@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 全站沉浸式顶栏背景（浅色/深色自适应）。
+     从 surface 渐变到页面背景色 @color/bg，与下方内容无硬切线；
+     叠加一条顶部极淡高光，保留液态玻璃顶栏观感。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="@color/surface"
+                android:endColor="@color/bg"
+                android:type="linear" />
+        </shape>
+    </item>
+    <!-- 顶部高光：贴近状态栏的一条淡反光（浅色下为白，深色下仍为低对比白） -->
+    <item android:top="0dp" android:bottom="-40dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#26FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

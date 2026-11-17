@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 登录/配置页夜间背景：深蓝到页面底色渐变，保持与浅色版同一视觉语言 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#FF16233A"
+        android:centerColor="#FF101B2D"
+        android:endColor="@color/bg"
+        android:type="linear" />
+</shape>
