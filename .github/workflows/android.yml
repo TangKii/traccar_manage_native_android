@@ -26,7 +26,7 @@ jobs:
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        run: bash ./gradlew --no-daemon testDebugUnitTest
 
       - name: Build debug APK
         run: ./gradlew --no-daemon assembleDebug
