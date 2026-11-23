@@ -23,7 +23,7 @@
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_car"
-            android:contentDescription="设备" />
+            android:contentDescription="@string/desc_device" />
     </FrameLayout>
 
     <LinearLayout

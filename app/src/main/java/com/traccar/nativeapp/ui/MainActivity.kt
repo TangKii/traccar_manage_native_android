@@ -417,12 +417,13 @@ class MainActivity : AppCompatActivity() {
                 if (pos.latitude == 0.0 && pos.longitude == 0.0) continue
                 val g = CoordTransform.toAmapLatLng(pos.latitude, pos.longitude)
                 val ll = LatLng(g.first, g.second)
-                map.addMarker(
+                val marker = map.addMarker(
                     MarkerOptions().position(ll)
                         .title(device.name)
                         .snippet(pos.address ?: getString(R.string.map_speed_snippet, pos.speedKmh))
-                        .icon(markerIcon)
+                        .icon(makeMarkerIcon(device, pos))
                 )
+                deviceMarkers[device.id] = marker
                 points.add(ll)
             }
             frameCamera(points)
