@@ -421,7 +421,7 @@ class MainActivity : AppCompatActivity() {
                     MarkerOptions().position(ll)
                         .title(device.name)
                         .snippet(pos.address ?: getString(R.string.map_speed_snippet, pos.speedKmh))
-                        .icon(makeMarkerIcon(device, pos))
+                        .icon(markerIcon)
                 )
                 deviceMarkers[device.id] = marker
                 points.add(ll)
