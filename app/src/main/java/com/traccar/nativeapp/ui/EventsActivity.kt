@@ -19,9 +19,7 @@ import com.traccar.nativeapp.data.Event
 import com.traccar.nativeapp.data.Prefs
 import com.traccar.nativeapp.ui.glass.Glass
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 /**
  * 告警/事件中心：拉取最近 90 天的事件，支持类型筛选、下拉刷新、空态。
@@ -235,13 +233,8 @@ class EventsActivity : AppCompatActivity() {
 
     /** 最近 90 天时间范围（UTC，ISO-8601，与 Traccar 服务端一致） */
     private fun last90DaysRange(): Pair<String, String> {
-        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }
-        val cal = Calendar.getInstance()
-        val to = fmt.format(cal.time)
-        cal.add(Calendar.DAY_OF_MONTH, -90)
-        val from = fmt.format(cal.time)
+        val to = isoUtc(Calendar.getInstance())
+        val from = isoUtc(Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -90) })
         return from to to
     }
 

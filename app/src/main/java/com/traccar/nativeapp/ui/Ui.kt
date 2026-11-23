@@ -21,13 +21,12 @@ import org.maplibre.android.annotations.Polyline
 import org.maplibre.android.annotations.PolylineOptions
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
-import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
-import java.util.TimeZone
 import kotlin.math.hypot
 
 /**
@@ -113,6 +112,8 @@ private fun findActivity(context: Context): Activity? {
     return null
 }
 
+private val localDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
 /**
  * 把 Traccar 返回的 ISO-8601 时间（UTC，如 2024-01-01T14:00:00.000Z）转成
  * 设备本地时区显示：yyyy-MM-dd HH:mm。直接截断原始串会显示成 UTC 时间，
@@ -129,7 +130,7 @@ fun fmtLocal(iso: String?): String {
             java.time.LocalDateTime.parse(iso).atOffset(java.time.ZoneOffset.UTC)
         }
         t.atZoneSameInstant(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            .format(localDateTimeFormatter)
     } catch (_: Exception) {
         iso.take(16).replace("T", " ")
     }
@@ -138,12 +139,12 @@ fun fmtLocal(iso: String?): String {
 /**
  * 把本地 Calendar 转成 Traccar 需要的 ISO-8601 UTC 串（带 Z 后缀）。
  * Traccar 的 DateTimeUtils.parseDate 严格要求 Z，否则解析为 null。
+ * 使用不可变且线程安全的 DateTimeFormatter 替换非线程安全的 SimpleDateFormat。
  */
-private val utcIsoFmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-    timeZone = TimeZone.getTimeZone("UTC")
-}
+private val utcIsoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    .withZone(ZoneOffset.UTC)
 
-fun isoUtc(cal: Calendar): String = utcIsoFmt.format(cal.time)
+fun isoUtc(cal: Calendar): String = utcIsoFormatter.format(cal.toInstant())
 
 /** 本地日历「今天/指定偏移天数的 00:00」 */
 fun dayStartCal(offsetDays: Int): Calendar =

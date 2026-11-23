@@ -15,6 +15,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -27,9 +28,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.traccar.nativeapp.ui.glass.Glass
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.traccar.nativeapp.R
 import com.traccar.nativeapp.data.Api
@@ -116,6 +115,7 @@ class MainActivity : AppCompatActivity() {
 
         bindViews()
         setupBottomNav()
+        setupBackNavigation()
         setupMap(savedInstanceState)
         setupDevicesList()
         setupMine()
@@ -130,7 +130,7 @@ class MainActivity : AppCompatActivity() {
     /** 启动告警前台服务（实时推送），并申请通知权限（Android 13+） */
     private fun startAlertService() {
         if (!prefs.isLoggedIn) return
-        ContextCompat.startForegroundService(this, Intent(this, NotificationService::class.java))
+        NotificationService.start(this)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -140,6 +140,24 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    private fun stopAlertService() {
+        NotificationService.stop(this)
+    }
+
+    /** 返回手势交互：在非首页 Tab 时按返回键切回首页，在首页按返回键退出应用 */
+    private fun setupBackNavigation() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (currentTab != 0) {
+                    showTab(0)
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
     }
 
     /**
@@ -532,13 +550,8 @@ class MainActivity : AppCompatActivity() {
 
     /** 最近 90 天时间范围（UTC，ISO-8601，与 Traccar 服务端一致） */
     private fun last90DaysRange(): Pair<String, String> {
-        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }
-        val cal = Calendar.getInstance()
-        val to = fmt.format(cal.time)
-        cal.add(Calendar.DAY_OF_MONTH, -90)
-        val from = fmt.format(cal.time)
+        val to = isoUtc(Calendar.getInstance())
+        val from = isoUtc(Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -90) })
         return from to to
     }
 
@@ -546,10 +559,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupMine() {
         findViewById<View>(R.id.rowServer).setOnClickListener {
-            // 切换服务器：清掉登录态后回配置页（保留已填地址）
-            prefs.logout()
-            startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
-            finish()
+            // 切换服务器：确认后停止推送服务并清掉登录态回配置页（保留已填地址）
+            android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.mine_server_switch_title)
+                .setMessage(R.string.mine_server_switch_message)
+                .setNegativeButton(R.string.common_cancel, null)
+                .setPositiveButton(R.string.confirm) { _, _ ->
+                    stopAlertService()
+                    prefs.logout()
+                    startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
+                    finish()
+                }
+                .show()
         }
         findViewById<View>(R.id.rowMap).setOnClickListener { toggleMapStyle() }
         findViewById<View>(R.id.rowAbout).setOnClickListener {
@@ -587,11 +608,19 @@ class MainActivity : AppCompatActivity() {
             rowUserManage.visibility = if (me?.canManageUsers == true) View.VISIBLE else View.GONE
         }
         findViewById<View>(R.id.btnLogout).setOnClickListener {
-            lifecycleScope.launch {
-                api.logout()
-                startActivity(Intent(this@MainActivity, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
-                finish()
-            }
+            android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.mine_logout_confirm_title)
+                .setMessage(R.string.mine_logout_confirm_message)
+                .setNegativeButton(R.string.common_cancel, null)
+                .setPositiveButton(R.string.confirm) { _, _ ->
+                    lifecycleScope.launch {
+                        stopAlertService()
+                        api.logout()
+                        startActivity(Intent(this@MainActivity, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
+                        finish()
+                    }
+                }
+                .show()
         }
     }
 

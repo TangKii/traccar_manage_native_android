@@ -173,4 +173,10 @@
 
     <!-- 地图 -->
     <string name="map_attribution">© 高德地图 (GCJ-02)</string>
+
+    <!-- 退出登录与切换服务器二次确认 -->
+    <string name="mine_logout_confirm_title">退出登录</string>
+    <string name="mine_logout_confirm_message">确定要退出当前登录账号吗？</string>
+    <string name="mine_server_switch_title">切换服务器</string>
+    <string name="mine_server_switch_message">切换服务器将清除当前登录状态，确定继续吗？</string>
 </resources>

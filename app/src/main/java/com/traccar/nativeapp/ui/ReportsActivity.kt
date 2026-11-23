@@ -18,9 +18,9 @@ import com.traccar.nativeapp.data.Prefs
 import com.traccar.nativeapp.data.Summary
 import com.traccar.nativeapp.data.Trip
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
-import java.util.Locale
 
 private fun fmtTime(iso: String?) = fmtLocal(iso)
 
@@ -261,19 +261,15 @@ class ReportsActivity : AppCompatActivity() {
     }
 
     private fun rangeIso(offset: Int): Pair<String, String> {
-        // Traccar 的 DateTimeUtils.parseDate 要求 ISO-8601 带 'Z'（UTC）后缀，
-        // 否则解析为 null、报表返回空。以本地零点为边界，再用 UTC 格式器转串，对齐用户本地日期。
-        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        val cal = java.util.Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            add(Calendar.DAY_OF_MONTH, -offset)
         }
-        val cal = java.util.Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0)
-        cal.add(Calendar.DAY_OF_MONTH, -offset)
-        val from = fmt.format(cal.time)
-        val toCal = java.util.Calendar.getInstance()
-        toCal.set(Calendar.HOUR_OF_DAY, 23); toCal.set(Calendar.MINUTE, 59); toCal.set(Calendar.SECOND, 59)
-        if (offset == 1) toCal.add(Calendar.DAY_OF_MONTH, -1)
-        return from to fmt.format(toCal.time)
+        val toCal = java.util.Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59)
+            if (offset == 1) add(Calendar.DAY_OF_MONTH, -1)
+        }
+        return isoUtc(cal) to isoUtc(toCal)
     }
 
     private fun fmtDuration(ms: Long): String {
@@ -283,7 +279,9 @@ class ReportsActivity : AppCompatActivity() {
         return if (h > 0) "${h}h${m}m" else "${m}m"
     }
 
-    private fun fmtPicker(cal: Calendar): String =
-        SimpleDateFormat("yyyy-MM-dd HH:00", Locale.US).format(cal.time)
+    private val pickerFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:00")
+        .withZone(ZoneId.systemDefault())
+
+    private fun fmtPicker(cal: Calendar): String = pickerFormatter.format(cal.toInstant())
 
 }

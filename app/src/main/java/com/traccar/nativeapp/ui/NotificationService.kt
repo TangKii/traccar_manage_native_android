@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import com.traccar.nativeapp.R
 import com.traccar.nativeapp.data.Api
@@ -23,9 +24,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 /**
  * 告警实时推送（前台服务）：
@@ -74,6 +76,12 @@ class NotificationService : Service() {
     override fun onDestroy() {
         pollJob?.cancel()
         scope.cancel()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
         super.onDestroy()
     }
 
@@ -95,7 +103,12 @@ class NotificationService : Service() {
         // 首次以较短间隔快速建立基线，之后按 intervalMs
         while (scope.isActive) {
             try {
-                if (prefs.isLoggedIn) pollOnce()
+                if (prefs.isLoggedIn) {
+                    pollOnce()
+                } else {
+                    stopSelf()
+                    break
+                }
             } catch (e: Exception) {
                 // 网络异常下一轮继续；同时输出真实错误便于用 logcat 排查（token 过期/报表被禁用等）
                 Log.w(TAG, getString(R.string.notif_poll_failed), e)
@@ -202,28 +215,34 @@ class NotificationService : Service() {
             .build()
     }
 
+    private val isoInstantFormatter = DateTimeFormatter
+        .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        .withZone(ZoneOffset.UTC)
+
     /**
      * 增量查询区间：从「已读时间」到「现在」，最多回溯 7 天。
      * Traccar 的时间参数要求 ISO-8601 带 'Z'；同一服务端返回的 eventTime 也是该格式，
      * 因此字符串比较与时间先后一致。
      */
     private fun pollRange(seen: String): Pair<String, String> {
-        val fmt = isoFmt()
-        val to = fmt.format(Calendar.getInstance().time)
-        val earliest = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -7) }
-        val floor = fmt.format(earliest.time)
+        val now = Instant.now()
+        val to = isoInstantFormatter.format(now)
+        val floor = isoInstantFormatter.format(now.minus(7, ChronoUnit.DAYS))
         val from = if (seen > floor) seen else floor
         return from to to
     }
 
-    private fun isoNow(): String = isoFmt().format(Calendar.getInstance().time)
-
-    private fun isoFmt(): SimpleDateFormat =
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }
+    private fun isoNow(): String = isoInstantFormatter.format(Instant.now())
 
     companion object {
         private const val TAG = "NotificationService"
+
+        fun start(context: Context) {
+            ContextCompat.startForegroundService(context, Intent(context, NotificationService::class.java))
+        }
+
+        fun stop(context: Context) {
+            context.stopService(Intent(context, NotificationService::class.java))
+        }
     }
 }
