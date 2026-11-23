@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 卡片导航选中态：浅蓝圆角胶囊（悬浮卡片内高亮当前 Tab） -->
+<!-- 导航选中态：低对比度的中性色胶囊，突出当前 Tab 但不抢占页面视觉 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#243E80FE" />
-    <corners android:radius="20dp" />
+    <solid android:color="@color/nav_selected" />
+    <corners android:radius="28dp" />
 </shape>

@@ -1,4 +1,4 @@
-// 仓库配置：AGP 插件来自 Google Maven，其余依赖来自 Maven Central
+// 仓库配置：AGP 插件来自 Google Maven，应用依赖来自 Maven Central / JitPack
 pluginManagement {
     repositories {
         google()
@@ -12,6 +12,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://jitpack.io")
     }
 }
 

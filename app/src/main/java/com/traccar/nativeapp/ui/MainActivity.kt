@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -27,6 +28,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import com.traccar.nativeapp.ui.glass.Glass
 import java.util.Calendar
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -51,6 +54,7 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 
@@ -103,7 +107,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var topBar: View
     private lateinit var searchCard: View
     private lateinit var fabGroup: View
-    private lateinit var bottomNav: View
+    private lateinit var blurTarget: BlurTarget
+    private lateinit var bottomNav: BlurView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -193,6 +198,7 @@ class MainActivity : AppCompatActivity() {
         topBar = findViewById(R.id.topBar)
         searchCard = findViewById(R.id.searchCard)
         fabGroup = findViewById(R.id.fabGroup)
+        blurTarget = findViewById(R.id.blurTarget)
         bottomNav = findViewById(R.id.bottomNav)
 
         // 铃铛从蓝底顶栏移到白色搜索卡片，深蓝着色保证在白底上可见
@@ -209,8 +215,16 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.tabDevices).setOnClickListener { showTab(1) }
         findViewById<View>(R.id.tabMine).setOnClickListener { showTab(2) }
 
-        // 悬浮卡片导航 + 顶部搜索卡 + 右下 FAB 改为实色圆角浮层（带投影），干净清晰、文字易读。
-        Glass.apply(bottomNav, 28f)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            bottomNav.setupWith(blurTarget)
+                .setBlurRadius(5f)
+                .setOverlayColor(getColor(R.color.nav_glass_tint))
+        } else {
+            bottomNav.setBackgroundResource(R.drawable.bg_nav_glass_fallback)
+        }
+        Glass.clipRound(bottomNav, 28f)
+
+        // 顶部搜索卡和右下 FAB 使用圆角表面；导航栏使用实时玻璃背景。
         Glass.apply(searchCard, 26f)
         // 选中态导航项 + 整组 Tab 的按压反馈（90–140ms）
         for (tabId in listOf(R.id.tabMap, R.id.tabDevices, R.id.tabMine)) {
@@ -246,8 +260,8 @@ class MainActivity : AppCompatActivity() {
             cardLp.topMargin = statusTop + searchTopMargin
             searchCard.requestLayout()
 
-            // 卡片导航约 66dp + 上下边距；列表与 FAB 统一留白，避免被白卡遮挡
-            val reserve = (86 * density).toInt() + navBar
+            // 导航 56dp 加底边距与缓冲；列表与 FAB 统一留白，避免被卡片遮挡
+            val reserve = (76 * density).toInt() + navBar
             rv.setPadding(rv.paddingLeft, rv.paddingTop, rv.paddingRight, reserve)
             pageMine.setPadding(pageMine.paddingLeft, pageMine.paddingTop, pageMine.paddingRight, reserve)
             fabLp.bottomMargin = reserve + (6 * density).toInt()
@@ -279,7 +293,7 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        // 导航高亮：选中态蓝字 + 浅蓝背景
+        // 导航选中态使用中性色胶囊，品牌蓝保留给主要操作。
         setTabStyle(R.id.tabMap, R.id.ivMap, R.id.tvMap, index == 0)
         setTabStyle(R.id.tabDevices, R.id.ivDevices, R.id.tvDevices, index == 1)
         setTabStyle(R.id.tabMine, R.id.ivMine, R.id.tvMine, index == 2)
@@ -290,7 +304,7 @@ class MainActivity : AppCompatActivity() {
         val iv = findViewById<ImageView>(ivId)
         val tv = findViewById<TextView>(tvId)
         tab.setBackgroundResource(if (selected) R.drawable.bg_nav_selected else 0)
-        val color = if (selected) R.color.brand else R.color.text_secondary
+        val color = if (selected) R.color.text_primary else R.color.text_secondary
         iv.setColorFilter(getColor(color))
         tv.setTextColor(getColor(color))
         tv.typeface = if (selected) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
@@ -299,7 +313,11 @@ class MainActivity : AppCompatActivity() {
     // ---------------- 地图 ----------------
 
     private fun setupMap(savedInstanceState: Bundle?) {
-        mapView = MapView(this).apply {
+        val mapOptions = MapLibreMapOptions.createFromAttributes(this, null)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            mapOptions.textureMode(true)
+        }
+        mapView = MapView(this, mapOptions).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )

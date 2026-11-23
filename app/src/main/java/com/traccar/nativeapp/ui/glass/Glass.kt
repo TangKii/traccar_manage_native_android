@@ -6,20 +6,8 @@ import android.provider.Settings
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewOutlineProvider
-import androidx.annotation.ColorRes
-import androidx.core.content.ContextCompat
-import com.traccar.nativeapp.R
 
-/**
- * 浮层工具：圆角裁切 + 实色背景 + 投影 + 按压缩放。
- *
- * 之前的「液态玻璃」材质（半透明体 / 高光 / 描边 / 动态模糊）已移除，改为干净的实色卡片：
- *   1) 实色圆角背景（默认纯白），不再透出底层；
- *   2) 圆角裁切由 View.clipToOutline 完成（保证四角都圆润）；
- *   3) 10dp 投影让浮层在地图 / 浅色背景上都清晰“浮起”；
- *   4) 按压缩放反馈；
- *   5) 减少动态效果（系统动画缩放为 0）时跳过入场/按压动效。
- */
+/** Shared rounded clipping, elevation, and press feedback for floating surfaces. */
 object Glass {
 
     /** 圆角裁切（rounded clipping）；半径按 dp 给出。 */
@@ -36,20 +24,11 @@ object Glass {
     }
 
     /**
-     * 给 View 套上实色圆角背景 + 投影。radiusDp 传宽高一半即可得圆形（FAB）。
-     * 不再使用任何半透明 / 模糊玻璃材质。
+     * 保留布局中定义的表面背景，统一补上圆角裁切与投影。
      */
-    fun apply(
-        view: View,
-        radiusDp: Float = 22f,
-        @ColorRes tint: Int = R.color.surface,
-    ) {
-        val ctx = view.context
-        view.background = android.graphics.drawable.ColorDrawable(
-            ContextCompat.getColor(ctx, tint)
-        )
+    fun apply(view: View, radiusDp: Float = 22f) {
         clipRound(view, radiusDp)
-        // 投影：让浮层清晰浮起，文字更易读。配合 clipToOutline，阴影沿圆角轮廓投射。
+        // 配合 clipToOutline，阴影沿圆角轮廓投射。
         view.elevation = 10f * view.resources.displayMetrics.density
     }
 
