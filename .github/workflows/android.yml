@@ -23,10 +23,10 @@ jobs:
           packages: platforms;android-35 build-tools;35.0.0 platform-tools
 
       - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        run: bash ./gradlew --no-daemon testDebugUnitTest
 
       - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        run: bash ./gradlew --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
