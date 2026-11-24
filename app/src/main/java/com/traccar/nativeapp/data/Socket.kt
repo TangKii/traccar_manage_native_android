@@ -44,20 +44,18 @@ class SocketController(
 
     private var retry = 0
 
-    @Synchronized
     fun connect() {
         if (running) return
         running = true
         open()
     }
 
-    @Synchronized
     private fun open() {
         if (!running) return
         val request = Request.Builder().url(api.socketUrl()).build()
         socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                synchronized(this@SocketController) { retry = 0 }
+                retry = 0
                 handler.post { onState(true) }
             }
 
@@ -101,7 +99,6 @@ class SocketController(
         })
     }
 
-    @Synchronized
     private fun scheduleReconnect() {
         if (!running) return
         retry += 1
@@ -112,7 +109,6 @@ class SocketController(
         }, delay)
     }
 
-    @Synchronized
     fun disconnect() {
         running = false
         socket?.close(1000, "logout")

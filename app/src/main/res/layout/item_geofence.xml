@@ -22,7 +22,7 @@
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_pin"
-            android:contentDescription="@string/desc_geofence" />
+            android:contentDescription="围栏" />
     </FrameLayout>
 
     <LinearLayout

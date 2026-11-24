@@ -25,7 +25,7 @@
                 android:layout_height="36dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_pin"
-                android:contentDescription="@string/desc_locate" />
+                android:contentDescription="定位" />
         </FrameLayout>
 
         <TextView

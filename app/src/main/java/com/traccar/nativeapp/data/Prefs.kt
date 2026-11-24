@@ -2,9 +2,7 @@ package com.traccar.nativeapp.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import java.util.Calendar
 
 /**
  * 本地持久化：服务器地址、Bearer token、记住的账号邮箱。
@@ -73,8 +71,13 @@ class Prefs(context: Context) {
     fun clearAll() = sp.edit().clear().apply()
 
     /** 生成 6 个月后的 ISO 时间，用于 POST /api/session/token 的 expiration 参数 */
-    fun tokenExpiration(): String =
-        ISO_EXPIRATION_FORMATTER.format(OffsetDateTime.now(ZoneOffset.UTC).plusMonths(6))
+    fun tokenExpiration(): String {
+        val cal = Calendar.getInstance().apply { add(Calendar.MONTH, 6) }
+        // 服务端接受 ISO-8601；用简单格式即可（与 Web 版 dayjs().toISOString() 对齐）
+        return java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
+            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+            .format(cal.time)
+    }
 
     companion object {
         private const val KEY_SERVER = "serverUrl"
@@ -86,9 +89,5 @@ class Prefs(context: Context) {
         private const val KEY_AUTO = "autoLogin"
         private const val KEY_MAP = "mapStyle"
         private const val KEY_EVENT_SEEN = "lastEventSeenTime"
-
-        private val ISO_EXPIRATION_FORMATTER = DateTimeFormatter
-            .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-            .withZone(ZoneOffset.UTC)
     }
 }

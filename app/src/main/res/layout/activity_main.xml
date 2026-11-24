@@ -1,22 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 首页内容放入 BlurTarget，底部玻璃导航作为独立浮层叠在其上；
-     状态栏 / 手势条 / 卡片高度由 MainActivity 按 WindowInsets 动态避让。 -->
+<!-- 首页「全屏融合 + 悬浮卡片」结构：
+     根 FrameLayout 叠两层 ——
+      ① 主体 LinearLayout 从屏幕顶端 y=0 铺满（地图延伸到状态栏后面）；
+      ② 底部卡片导航浮在主体之上，左右留边、大圆角，不占布局高度。
+     所有避让（状态栏 / 手势条 / 卡片高度）由 MainActivity 按 WindowInsets 动态设置。 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg">
 
-    <!-- ① 可被悬浮玻璃层采样的页面内容 -->
-    <eightbitlab.com.blurview.BlurTarget
-        android:id="@+id/blurTarget"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
+    <!-- ① 主体：铺满全屏 -->
     <LinearLayout
         android:id="@+id/mainContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/bg"
         android:orientation="vertical">
 
         <!-- 统一顶栏：设备 / 我的页显示（渐变背景由 fitTopBar 设置并撑到状态栏），
@@ -147,7 +144,7 @@
                         android:id="@+id/btnLayers"
                         android:layout_width="46dp"
                         android:layout_height="46dp"
-                        android:background="@drawable/bg_nav_card"
+                        android:background="@drawable/bg_card"
                         android:src="@drawable/ic_layers"
                         android:scaleType="centerInside"
                         android:elevation="4dp"
@@ -158,189 +155,11 @@
                         android:layout_width="46dp"
                         android:layout_height="46dp"
                         android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_nav_card"
+                        android:background="@drawable/bg_card"
                         android:src="@drawable/ic_locate"
                         android:scaleType="centerInside"
                         android:elevation="4dp"
                         android:contentDescription="@string/map_locate" />
-                </LinearLayout>
-
-                <!-- 底部选中的车辆快捷操作卡片（点击 Marker 浮现） -->
-                <LinearLayout
-                    android:id="@+id/cardMapDevice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom"
-                    android:layout_marginStart="14dp"
-                    android:layout_marginEnd="14dp"
-                    android:layout_marginBottom="90dp"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:background="@drawable/bg_nav_card"
-                    android:elevation="10dp"
-                    android:visibility="gone">
-
-                    <!-- 顶部标题 + 状态 + 关闭按钮 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <FrameLayout
-                            android:id="@+id/iconSheetDevice"
-                            android:layout_width="38dp"
-                            android:layout_height="38dp"
-                            android:background="@drawable/bg_icon_brand">
-                            <ImageView
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:layout_gravity="center"
-                                android:src="@drawable/ic_car"
-                                android:contentDescription="@string/desc_device" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="10dp">
-
-                            <TextView
-                                android:id="@+id/tvSheetDeviceName"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="@color/text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:maxLines="1"
-                                android:ellipsize="end" />
-
-                            <TextView
-                                android:id="@+id/tvSheetDeviceStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <ImageButton
-                            android:id="@+id/btnSheetClose"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:background="?android:attr/selectableItemBackgroundBorderless"
-                            android:src="@drawable/ic_back"
-                            android:rotation="270"
-                            android:scaleType="centerInside"
-                            android:contentDescription="@string/common_cancel" />
-                    </LinearLayout>
-
-                    <!-- 中部关键指标（速度 + 电量 + 时间/地址） -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="12dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/map_sheet_speed_label"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp" />
-                            <TextView
-                                android:id="@+id/tvSheetSpeed"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:textColor="@color/brand"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/map_sheet_battery_label"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp" />
-                            <TextView
-                                android:id="@+id/tvSheetBattery"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:textColor="@color/brand"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="2"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/detail_time"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp" />
-                            <TextView
-                                android:id="@+id/tvSheetTime"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:textColor="@color/text_primary"
-                                android:textSize="13sp"
-                                android:maxLines="1"
-                                android:ellipsize="end" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- 底部操作按钮：定位详情 + 轨迹回放 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="12dp">
-
-                        <Button
-                            android:id="@+id/btnSheetDetail"
-                            android:layout_width="0dp"
-                            android:layout_height="38dp"
-                            android:layout_weight="1"
-                            android:stateListAnimator="@null"
-                            android:background="@drawable/bg_brand_button"
-                            android:text="@string/map_action_detail"
-                            android:textColor="#FFFFFFFF"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <Button
-                            android:id="@+id/btnSheetReplay"
-                            android:layout_width="0dp"
-                            android:layout_height="38dp"
-                            android:layout_weight="1"
-                            android:layout_marginStart="10dp"
-                            android:stateListAnimator="@null"
-                            android:background="@drawable/bg_date_outline"
-                            android:text="@string/map_action_replay"
-                            android:textColor="@color/brand"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
                 </LinearLayout>
             </FrameLayout>
 
@@ -566,81 +385,86 @@
             </ScrollView>
         </FrameLayout>
     </LinearLayout>
-    </eightbitlab.com.blurview.BlurTarget>
 
-    <!-- ② 悬浮玻璃底栏：Android 12+ 实时模糊主体，旧版本使用磨砂色底 -->
-    <eightbitlab.com.blurview.BlurView
+    <!-- ② 悬浮卡片式底部导航：左右留边、大圆角、白底阴影，浮在内容之上。
+         边距由代码叠加手势导航栏 inset，避免被系统手势条压住 -->
+    <LinearLayout
         android:id="@+id/bottomNav"
-        android:layout_width="wrap_content"
-        android:layout_height="56dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
         android:layout_marginBottom="10dp"
-        android:background="@drawable/bg_nav_glass"
-        android:clipToOutline="true"
+        android:minHeight="66dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_nav_card"
         android:elevation="12dp"
-        android:padding="1dp">
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:id="@+id/tabMap"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="3dp"
-            android:paddingEnd="3dp">
-
-            <LinearLayout
-                android:id="@+id/tabMap"
-                android:layout_width="82dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="1dp"
-                android:layout_marginEnd="1dp"
-                android:gravity="center"
-                android:orientation="vertical">
-                <ImageView android:id="@+id/ivMap"
-                    android:layout_width="20dp" android:layout_height="20dp"
-                    android:src="@drawable/ic_map" />
-                <TextView android:id="@+id/tvMap"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="@string/nav_map" android:textColor="@color/text_primary"
-                    android:textSize="10sp" android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/tabDevices"
-                android:layout_width="82dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="1dp"
-                android:layout_marginEnd="1dp"
-                android:gravity="center"
-                android:orientation="vertical">
-                <ImageView android:id="@+id/ivDevices"
-                    android:layout_width="20dp" android:layout_height="20dp"
-                    android:src="@drawable/ic_devices" />
-                <TextView android:id="@+id/tvDevices"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="@string/nav_devices" android:textColor="@color/text_secondary"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/tabMine"
-                android:layout_width="82dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="1dp"
-                android:layout_marginEnd="1dp"
-                android:gravity="center"
-                android:orientation="vertical">
-                <ImageView android:id="@+id/ivMine"
-                    android:layout_width="20dp" android:layout_height="20dp"
-                    android:src="@drawable/ic_mine" />
-                <TextView android:id="@+id/tvMine"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="@string/nav_mine" android:textColor="@color/text_secondary"
-                    android:textSize="10sp" />
-            </LinearLayout>
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+            <ImageView android:id="@+id/ivMap"
+                android:layout_width="24dp" android:layout_height="24dp"
+                android:src="@drawable/ic_map" />
+            <TextView android:id="@+id/tvMap"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/nav_map" android:textColor="@color/brand"
+                android:textSize="11sp" android:textStyle="bold" />
         </LinearLayout>
-    </eightbitlab.com.blurview.BlurView>
+
+        <LinearLayout
+            android:id="@+id/tabDevices"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+            <ImageView android:id="@+id/ivDevices"
+                android:layout_width="24dp" android:layout_height="24dp"
+                android:src="@drawable/ic_devices" />
+            <TextView android:id="@+id/tvDevices"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/nav_devices" android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tabMine"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+            <ImageView android:id="@+id/ivMine"
+                android:layout_width="24dp" android:layout_height="24dp"
+                android:src="@drawable/ic_mine" />
+            <TextView android:id="@+id/tvMine"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/nav_mine" android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
 
 </FrameLayout>

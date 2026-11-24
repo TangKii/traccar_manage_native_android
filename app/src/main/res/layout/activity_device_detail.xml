@@ -23,7 +23,7 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_back"
             android:scaleType="centerInside"
-            android:contentDescription="@string/desc_back" />
+            android:contentDescription="返回" />
 
         <TextView
             android:layout_width="wrap_content"

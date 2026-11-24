@@ -30,42 +30,35 @@ object MapStyles {
     }
 
     /** 与 Web 版 styleCustom({tiles, minZoom:3, maxZoom:18}) 生成的结构一致 */
-    private fun styleJson(tiles: String, attribution: String, isNight: Boolean = false): String {
-        val paintJson = if (isNight) {
-            """, "paint": { "raster-brightness-max": 0.72, "raster-saturation": -0.15 }"""
-        } else {
-            ""
+    private fun styleJson(tiles: String, attribution: String): String = """
+    {
+      "version": 8,
+      "sources": {
+        "amap": {
+          "type": "raster",
+          "tiles": [$tiles],
+          "tileSize": 256,
+          "minzoom": 3,
+          "maxzoom": 18,
+          "attribution": "$attribution"
         }
-        return """
-        {
-          "version": 8,
-          "sources": {
-            "amap": {
-              "type": "raster",
-              "tiles": [$tiles],
-              "tileSize": 256,
-              "minzoom": 3,
-              "maxzoom": 18,
-              "attribution": "$attribution"
-            }
-          },
-          "layers": [
-            { "id": "amap-layer", "type": "raster", "source": "amap"$paintJson }
-          ]
-        }
-        """.trimIndent()
+      },
+      "layers": [
+        { "id": "amap-layer", "type": "raster", "source": "amap" }
+      ]
     }
+    """.trimIndent()
 
-    fun styleJsonFor(id: String, isNight: Boolean = false): String {
+    fun styleJsonFor(id: String): String {
         val attribution = AppText.get(R.string.map_attribution)
         return when (id) {
-            AUTO_NAVI_SATELLITE -> styleJson(satelliteTiles(), attribution, isNight)
-            else -> styleJson(roadTiles(), attribution, isNight)
+            AUTO_NAVI_SATELLITE -> styleJson(satelliteTiles(), attribution)
+            else -> styleJson(roadTiles(), attribution)
         }
     }
 
-    fun builderFor(id: String, isNight: Boolean = false): Style.Builder =
-        Style.Builder().fromJson(styleJsonFor(id, isNight))
+    fun builderFor(id: String): Style.Builder =
+        Style.Builder().fromJson(styleJsonFor(id))
 
     fun displayName(id: String): String = when (id) {
         AUTO_NAVI_SATELLITE -> AppText.get(R.string.map_style_satellite)

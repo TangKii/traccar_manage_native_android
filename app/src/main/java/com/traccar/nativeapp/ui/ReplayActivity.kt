@@ -34,9 +34,9 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 /** 轨迹回放：选择日期（快捷/自定义精确到小时）→ 加载历史点位 → 画轨迹线 → 播放/拖拽查看沿途位置。 */
 class ReplayActivity : AppCompatActivity() {
@@ -203,6 +203,10 @@ class ReplayActivity : AppCompatActivity() {
     }
 
     private fun dayRange(dayOffset: Int): Pair<String, String> {
+        // Traccar 要求 ISO-8601 带 'Z'（UTC）后缀，否则解析为 null。用本地零点边界 + UTC 格式化。
+        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
         val from = java.util.Calendar.getInstance().apply {
             add(Calendar.DAY_OF_MONTH, -dayOffset)
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
@@ -213,7 +217,7 @@ class ReplayActivity : AppCompatActivity() {
             if (dayOffset != QUICK_WEEK) add(Calendar.DAY_OF_MONTH, -dayOffset)
             set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59)
         }
-        return isoUtc(from) to isoUtc(to)
+        return fmt.format(from.time) to fmt.format(to.time)
     }
 
     private fun loadTrack(from: String, to: String) {
@@ -408,10 +412,8 @@ class ReplayActivity : AppCompatActivity() {
     private fun lerp(a: LatLng, b: LatLng, f: Double): LatLng =
         LatLng(a.latitude + (b.latitude - a.latitude) * f, a.longitude + (b.longitude - a.longitude) * f)
 
-    private val pickerFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:00")
-        .withZone(ZoneId.systemDefault())
-
-    private fun fmtPicker(cal: Calendar): String = pickerFormatter.format(cal.toInstant())
+    private fun fmtPicker(cal: Calendar): String =
+        SimpleDateFormat("yyyy-MM-dd HH:00", Locale.US).format(cal.time)
 
     private fun makeDotBitmap(): Bitmap {
         val size = 44

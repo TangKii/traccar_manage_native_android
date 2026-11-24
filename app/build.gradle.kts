@@ -100,8 +100,6 @@ dependencies {
 
     // 地图引擎：与 Traccar Web 同源的 MapLibre GL Native
     implementation("org.maplibre.gl:android-sdk:11.8.0")
-    // 实时背景模糊：Android 12+ 使用 RenderEffect，旧版本由导航栏显示磨砂底色回退
-    implementation("com.github.Dimezis:BlurView:version-4.0.0")
 
     // 纯 JVM 单元测试（坐标转换 / 围栏解析 / 单位换算 / 网络策略）
     testImplementation("junit:junit:4.13.2")

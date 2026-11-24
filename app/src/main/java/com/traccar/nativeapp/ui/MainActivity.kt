@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,7 +15,6 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -28,10 +26,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import eightbitlab.com.blurview.BlurTarget
-import eightbitlab.com.blurview.BlurView
 import com.traccar.nativeapp.ui.glass.Glass
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.traccar.nativeapp.R
 import com.traccar.nativeapp.data.Api
@@ -54,7 +52,6 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
-import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 
@@ -107,8 +104,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var topBar: View
     private lateinit var searchCard: View
     private lateinit var fabGroup: View
-    private lateinit var blurTarget: BlurTarget
-    private lateinit var bottomNav: BlurView
+    private lateinit var bottomNav: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -120,7 +116,6 @@ class MainActivity : AppCompatActivity() {
 
         bindViews()
         setupBottomNav()
-        setupBackNavigation()
         setupMap(savedInstanceState)
         setupDevicesList()
         setupMine()
@@ -135,7 +130,7 @@ class MainActivity : AppCompatActivity() {
     /** 启动告警前台服务（实时推送），并申请通知权限（Android 13+） */
     private fun startAlertService() {
         if (!prefs.isLoggedIn) return
-        NotificationService.start(this)
+        ContextCompat.startForegroundService(this, Intent(this, NotificationService::class.java))
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -145,24 +140,6 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-    }
-
-    private fun stopAlertService() {
-        NotificationService.stop(this)
-    }
-
-    /** 返回手势交互：在非首页 Tab 时按返回键切回首页，在首页按返回键退出应用 */
-    private fun setupBackNavigation() {
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (currentTab != 0) {
-                    showTab(0)
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                }
-            }
-        })
     }
 
     /**
@@ -198,7 +175,6 @@ class MainActivity : AppCompatActivity() {
         topBar = findViewById(R.id.topBar)
         searchCard = findViewById(R.id.searchCard)
         fabGroup = findViewById(R.id.fabGroup)
-        blurTarget = findViewById(R.id.blurTarget)
         bottomNav = findViewById(R.id.bottomNav)
 
         // 铃铛从蓝底顶栏移到白色搜索卡片，深蓝着色保证在白底上可见
@@ -215,16 +191,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.tabDevices).setOnClickListener { showTab(1) }
         findViewById<View>(R.id.tabMine).setOnClickListener { showTab(2) }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            bottomNav.setupWith(blurTarget)
-                .setBlurRadius(5f)
-                .setOverlayColor(getColor(R.color.nav_glass_tint))
-        } else {
-            bottomNav.setBackgroundResource(R.drawable.bg_nav_glass_fallback)
-        }
-        Glass.clipRound(bottomNav, 28f)
-
-        // 顶部搜索卡和右下 FAB 使用圆角表面；导航栏使用实时玻璃背景。
+        // 悬浮卡片导航 + 顶部搜索卡 + 右下 FAB 改为实色圆角浮层（带投影），干净清晰、文字易读。
+        Glass.apply(bottomNav, 28f)
         Glass.apply(searchCard, 26f)
         // 选中态导航项 + 整组 Tab 的按压反馈（90–140ms）
         for (tabId in listOf(R.id.tabMap, R.id.tabDevices, R.id.tabMine)) {
@@ -260,8 +228,8 @@ class MainActivity : AppCompatActivity() {
             cardLp.topMargin = statusTop + searchTopMargin
             searchCard.requestLayout()
 
-            // 导航 56dp 加底边距与缓冲；列表与 FAB 统一留白，避免被卡片遮挡
-            val reserve = (76 * density).toInt() + navBar
+            // 卡片导航约 66dp + 上下边距；列表与 FAB 统一留白，避免被白卡遮挡
+            val reserve = (86 * density).toInt() + navBar
             rv.setPadding(rv.paddingLeft, rv.paddingTop, rv.paddingRight, reserve)
             pageMine.setPadding(pageMine.paddingLeft, pageMine.paddingTop, pageMine.paddingRight, reserve)
             fabLp.bottomMargin = reserve + (6 * density).toInt()
@@ -293,7 +261,7 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        // 导航选中态使用中性色胶囊，品牌蓝保留给主要操作。
+        // 导航高亮：选中态蓝字 + 浅蓝背景
         setTabStyle(R.id.tabMap, R.id.ivMap, R.id.tvMap, index == 0)
         setTabStyle(R.id.tabDevices, R.id.ivDevices, R.id.tvDevices, index == 1)
         setTabStyle(R.id.tabMine, R.id.ivMine, R.id.tvMine, index == 2)
@@ -304,7 +272,7 @@ class MainActivity : AppCompatActivity() {
         val iv = findViewById<ImageView>(ivId)
         val tv = findViewById<TextView>(tvId)
         tab.setBackgroundResource(if (selected) R.drawable.bg_nav_selected else 0)
-        val color = if (selected) R.color.text_primary else R.color.text_secondary
+        val color = if (selected) R.color.brand else R.color.text_secondary
         iv.setColorFilter(getColor(color))
         tv.setTextColor(getColor(color))
         tv.typeface = if (selected) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
@@ -313,11 +281,7 @@ class MainActivity : AppCompatActivity() {
     // ---------------- 地图 ----------------
 
     private fun setupMap(savedInstanceState: Bundle?) {
-        val mapOptions = MapLibreMapOptions.createFromAttributes(this, null)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            mapOptions.textureMode(true)
-        }
-        mapView = MapView(this, mapOptions).apply {
+        mapView = MapView(this).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
@@ -435,13 +399,12 @@ class MainActivity : AppCompatActivity() {
                 if (pos.latitude == 0.0 && pos.longitude == 0.0) continue
                 val g = CoordTransform.toAmapLatLng(pos.latitude, pos.longitude)
                 val ll = LatLng(g.first, g.second)
-                val marker = map.addMarker(
+                map.addMarker(
                     MarkerOptions().position(ll)
                         .title(device.name)
                         .snippet(pos.address ?: getString(R.string.map_speed_snippet, pos.speedKmh))
                         .icon(markerIcon)
                 )
-                deviceMarkers[device.id] = marker
                 points.add(ll)
             }
             frameCamera(points)
@@ -569,8 +532,13 @@ class MainActivity : AppCompatActivity() {
 
     /** 最近 90 天时间范围（UTC，ISO-8601，与 Traccar 服务端一致） */
     private fun last90DaysRange(): Pair<String, String> {
-        val to = isoUtc(Calendar.getInstance())
-        val from = isoUtc(Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -90) })
+        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
+        val cal = Calendar.getInstance()
+        val to = fmt.format(cal.time)
+        cal.add(Calendar.DAY_OF_MONTH, -90)
+        val from = fmt.format(cal.time)
         return from to to
     }
 
@@ -578,18 +546,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupMine() {
         findViewById<View>(R.id.rowServer).setOnClickListener {
-            // 切换服务器：确认后停止推送服务并清掉登录态回配置页（保留已填地址）
-            android.app.AlertDialog.Builder(this)
-                .setTitle(R.string.mine_server_switch_title)
-                .setMessage(R.string.mine_server_switch_message)
-                .setNegativeButton(R.string.common_cancel, null)
-                .setPositiveButton(R.string.confirm) { _, _ ->
-                    stopAlertService()
-                    prefs.logout()
-                    startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
-                    finish()
-                }
-                .show()
+            // 切换服务器：清掉登录态后回配置页（保留已填地址）
+            prefs.logout()
+            startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
+            finish()
         }
         findViewById<View>(R.id.rowMap).setOnClickListener { toggleMapStyle() }
         findViewById<View>(R.id.rowAbout).setOnClickListener {
@@ -627,19 +587,11 @@ class MainActivity : AppCompatActivity() {
             rowUserManage.visibility = if (me?.canManageUsers == true) View.VISIBLE else View.GONE
         }
         findViewById<View>(R.id.btnLogout).setOnClickListener {
-            android.app.AlertDialog.Builder(this)
-                .setTitle(R.string.mine_logout_confirm_title)
-                .setMessage(R.string.mine_logout_confirm_message)
-                .setNegativeButton(R.string.common_cancel, null)
-                .setPositiveButton(R.string.confirm) { _, _ ->
-                    lifecycleScope.launch {
-                        stopAlertService()
-                        api.logout()
-                        startActivity(Intent(this@MainActivity, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
-                        finish()
-                    }
-                }
-                .show()
+            lifecycleScope.launch {
+                api.logout()
+                startActivity(Intent(this@MainActivity, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
+                finish()
+            }
         }
     }
 

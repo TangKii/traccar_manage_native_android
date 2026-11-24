@@ -173,36 +173,4 @@
 
     <!-- 地图 -->
     <string name="map_attribution">© 高德地图 (GCJ-02)</string>
-
-    <!-- 退出登录与切换服务器二次确认 -->
-    <string name="mine_logout_confirm_title">退出登录</string>
-    <string name="mine_logout_confirm_message">确定要退出当前登录账号吗？</string>
-    <string name="mine_server_switch_title">切换服务器</string>
-    <string name="mine_server_switch_message">切换服务器将清除当前登录状态，确定继续吗？</string>
-
-    <!-- 无障碍说明 -->
-    <string name="desc_back">返回</string>
-    <string name="desc_locate">定位</string>
-    <string name="desc_device">设备</string>
-    <string name="desc_geofence">围栏</string>
-    <string name="desc_user">用户</string>
-
-    <!-- 地图选车快捷浮卡 -->
-    <string name="map_sheet_speed_label">车速</string>
-    <string name="map_sheet_battery_label">电量</string>
-    <string name="map_sheet_status_online">在线</string>
-    <string name="map_sheet_status_offline">离线</string>
-    <string name="map_action_detail">定位详情</string>
-    <string name="map_action_replay">轨迹回放</string>
-
-    <!-- 报表指标看板 -->
-    <string name="metric_distance">行驶里程</string>
-    <string name="metric_duration">行驶时长</string>
-    <string name="metric_max_speed">最高时速</string>
-    <string name="metric_avg_speed">平均时速</string>
-
-    <!-- 空态描述 -->
-    <string name="empty_events_desc">近 90 天内暂无任何异常报警或设备消息</string>
-    <string name="empty_reports_desc">该时间段内设备未产生行驶轨迹或停留数据</string>
-    <string name="empty_devices_desc">当前账号下暂无可监控的设备</string>
 </resources>

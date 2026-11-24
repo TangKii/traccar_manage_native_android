@@ -22,7 +22,7 @@
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_mine"
-            android:contentDescription="@string/desc_user" />
+            android:contentDescription="用户" />
     </FrameLayout>
 
     <LinearLayout
