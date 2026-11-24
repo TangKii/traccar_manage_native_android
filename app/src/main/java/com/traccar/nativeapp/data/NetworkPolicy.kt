@@ -1,5 +1,6 @@
 package com.traccar.nativeapp.data
 
+import com.traccar.nativeapp.BuildConfig
 import com.traccar.nativeapp.R
 import okhttp3.HttpUrl
 import java.io.IOException
@@ -56,6 +57,10 @@ object NetworkPolicy {
 
     /** OkHttp 拦截器调用：不合规时抛出带中文说明的 IOException */
     fun check(url: HttpUrl) {
+        // Debug 构建：为便于调试自建服务，放行任意地址的明文 http/ws（含公网 IP），
+        // 因此调试版可以直接用 IP 登录；Release 构建仍执行下面的安全策略，
+        // 公网地址必须使用 https（域名 + 证书），内网/本机 IP 的 http 依旧允许。
+        if (BuildConfig.DEBUG) return
         // wss 与 https 同级放行；ws 与 http 一样只允许本机/内网
         if (url.isHttps || url.scheme.equals("wss", ignoreCase = true)) return
         if (isPrivateHost(url.host)) return

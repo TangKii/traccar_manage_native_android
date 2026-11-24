@@ -46,6 +46,11 @@
         <activity android:name=".ui.DeviceDetailActivity" android:exported="false" />
         <activity android:name=".ui.ReplayActivity" android:exported="false" />
         <activity android:name=".ui.EventsActivity" android:exported="false" />
+        <activity android:name=".ui.EventDetailActivity" android:exported="false" />
+        <activity android:name=".ui.AboutActivity" android:exported="false" />
+        <activity android:name=".ui.ConfirmActivity" android:exported="false" />
+        <activity android:name=".ui.DateTimePickerActivity" android:exported="false" />
+        <activity android:name=".ui.ServerActivity" android:exported="false" />
         <activity android:name=".ui.GeofencesActivity" android:exported="false" />
         <activity android:name=".ui.GeofenceMapActivity" android:exported="false" />
         <activity android:name=".ui.ReportsActivity" android:exported="false" />

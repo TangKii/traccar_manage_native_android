@@ -24,7 +24,7 @@
                 android:layout_height="34dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_pin"
-                android:contentDescription="定位" />
+                android:contentDescription="@string/desc_locate" />
         </FrameLayout>
 
         <TextView
@@ -32,7 +32,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
             android:text="@string/app_name"
-            android:textColor="@color/brand_dark"
+            android:textColor="@color/brand"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -112,9 +112,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="16dp"
-                android:background="@drawable/selector_brand_button"
+                android:background="@drawable/selector_outline_primary"
+                android:drawableStart="@drawable/ic_check"
+                android:drawableTint="@color/brand"
+                android:drawablePadding="10dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
                 android:text="@string/login_button"
-                android:textColor="#FFFFFFFF"
+                android:textColor="@color/brand"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:stateListAnimator="@null" />

@@ -70,7 +70,7 @@ class DeviceDetailActivity : AppCompatActivity() {
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync { map ->
             maplibreMap = map
-            map.setStyle(MapStyles.builderFor(prefs.mapStyle))
+            map.setStyle(MapStyles.builderFor(prefs.mapStyle, isNightMode(this)))
         }
 
         btnReplay.setOnClickListener {

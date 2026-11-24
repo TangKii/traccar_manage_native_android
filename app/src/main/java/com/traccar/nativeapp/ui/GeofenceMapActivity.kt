@@ -50,7 +50,7 @@ class GeofenceMapActivity : AppCompatActivity() {
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync { map ->
             maplibreMap = map
-            map.setStyle(MapStyles.builderFor("autoNavi")) { drawFence() }
+            map.setStyle(MapStyles.builderFor("autoNavi", isNightMode(this))) { drawFence() }
         }
     }
 

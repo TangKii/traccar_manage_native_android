@@ -1,5 +1,6 @@
 package com.traccar.nativeapp.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -17,11 +18,8 @@ import com.traccar.nativeapp.R
 import com.traccar.nativeapp.data.Api
 import com.traccar.nativeapp.data.Event
 import com.traccar.nativeapp.data.Prefs
-import com.traccar.nativeapp.ui.glass.Glass
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 /**
  * 告警/事件中心：拉取最近 90 天的事件，支持类型筛选、下拉刷新、空态。
@@ -148,100 +146,23 @@ class EventsActivity : AppCompatActivity() {
         val deviceName = deviceNameMap[event.deviceId]
             ?: getString(R.string.event_device_label, event.deviceId)
         val urgent = Event.isAlarm(event.type, event.attributes)
-
-        val dialog = android.app.Dialog(this).apply {
-            setContentView(R.layout.dialog_event_detail)
-            // 弹窗：窗口级调暗遮罩（不再做背后模糊），对话框自身为实色圆角卡片
-            Glass.setupDialogGlass(this)
-            // 宽度约 88%，保留两侧留白
-            window?.setLayout(
-                (resources.displayMetrics.widthPixels * 0.88).toInt(),
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            // 玻璃卡片圆角裁切（与 bg_glass 圆角一致）
-            findViewById<View>(R.id.glassRoot)?.let { Glass.clipRound(it, 22f) }
-            // 入场动画：缩放回弹 + 淡入（220–320ms），符合液态玻璃面板入场
-            setOnShowListener {
-                val root = findViewById<View>(R.id.glassRoot) ?: return@setOnShowListener
-                // 减少动态效果：直接以终态呈现，不做缩放回弹
-                if (Glass.isReduceMotion(this@EventsActivity)) {
-                    root.alpha = 1f
-                    root.scaleX = 1f
-                    root.scaleY = 1f
-                    return@setOnShowListener
-                }
-                root.alpha = 0f
-                root.scaleX = 0.92f
-                root.scaleY = 0.92f
-                root.animate()
-                    .alpha(1f).scaleX(1f).scaleY(1f)
-                    .setDuration(280)
-                    .setInterpolator(android.view.animation.PathInterpolator(0.16f, 1f, 0.3f, 1f))
-                    .start()
-            }
-        }
-
-        // 头部：按类型取色 + 图标 + 标题 + 紧急/普通副标
-        val colorRes = Event.typeColor(event.type)
-        val headerColor = ContextCompat.getColor(this, colorRes)
-        // 无障碍：彩色头部叠加 20% 黑遮罩，保证白字标题/副标题在红/蓝/绿/灰各类型色头上
-        // 均满足 WCAG 4.5:1（原浅蓝副标题压红底仅 3.1:1，不达标）。
-        val header = dialog.findViewById<View>(R.id.header)
-        header.background = android.graphics.drawable.LayerDrawable(
-            arrayOf(
-                android.graphics.drawable.ColorDrawable(headerColor),
-                android.graphics.drawable.ColorDrawable(0x33000000.toInt())
-            )
+        // 全屏详情页（Jiumi 风格，替代弹窗）
+        startActivity(
+            Intent(this, EventDetailActivity::class.java)
+                .putExtra(EventDetailActivity.EXTRA_TYPE, event.type)
+                .putExtra(EventDetailActivity.EXTRA_TITLE, event.title)
+                .putExtra(EventDetailActivity.EXTRA_TIME, event.serverTime)
+                .putExtra(EventDetailActivity.EXTRA_DETAIL, event.detail)
+                .putExtra(EventDetailActivity.EXTRA_DEVICE, deviceName)
+                .putExtra(EventDetailActivity.EXTRA_DEVICE_ID, event.deviceId)
+                .putExtra(EventDetailActivity.EXTRA_URGENT, urgent)
         )
-        dialog.findViewById<TextView>(R.id.ivIcon).text = Event.typeIcon(event.type)
-        dialog.findViewById<TextView>(R.id.tvTitle).text = event.title
-        dialog.findViewById<TextView>(R.id.tvTypeLabel).text =
-            getString(if (urgent) R.string.events_urgent else R.string.events_notice)
-
-        // 键值正文（详情为空则隐藏该行）
-        bindRow(dialog, R.id.rowType, getString(R.string.label_type), event.title)
-        bindRow(dialog, R.id.rowDevice, getString(R.string.label_device), deviceName)
-        bindRow(dialog, R.id.rowTime, getString(R.string.label_time), formatTime(event.serverTime))
-        bindRow(dialog, R.id.rowDetail, getString(R.string.label_detail), event.detail)
-
-        // 紧急类（SOS/报警）额外提供“定位设备”，跳转设备详情地图页
-        val btnPrimary = dialog.findViewById<android.widget.Button>(R.id.btnPrimary)
-        if (urgent) {
-            btnPrimary.visibility = View.VISIBLE
-            btnPrimary.setOnClickListener {
-                startActivity(
-                    android.content.Intent(this, DeviceDetailActivity::class.java)
-                        .putExtra("deviceId", event.deviceId)
-                )
-                dialog.dismiss()
-            }
-        } else {
-            btnPrimary.visibility = View.GONE
-        }
-
-        dialog.findViewById<android.widget.Button>(R.id.btnDismiss).setOnClickListener { dialog.dismiss() }
-        dialog.show()
     }
-
-    /** 给自定义弹窗中的一行包含布局绑定标签与值；值为空则整行隐藏 */
-    private fun bindRow(dialog: android.app.Dialog, rowRootId: Int, label: String, value: String) {
-        val root = dialog.findViewById<ViewGroup>(rowRootId)
-        root.findViewById<TextView>(R.id.tvLabel).text = label
-        root.findViewById<TextView>(R.id.tvValue).text = value
-        root.visibility = if (value.isBlank()) View.GONE else View.VISIBLE
-    }
-
-    private fun formatTime(iso: String?) = fmtLocal(iso)
 
     /** 最近 90 天时间范围（UTC，ISO-8601，与 Traccar 服务端一致） */
     private fun last90DaysRange(): Pair<String, String> {
-        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }
-        val cal = Calendar.getInstance()
-        val to = fmt.format(cal.time)
-        cal.add(Calendar.DAY_OF_MONTH, -90)
-        val from = fmt.format(cal.time)
+        val to = isoUtc(Calendar.getInstance())
+        val from = isoUtc(Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -90) })
         return from to to
     }
 
@@ -280,6 +201,7 @@ class EventsActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             val e = items[position]
+            holder.ivIcon.text = Event.typeIcon(e.type)
             holder.tvTitle.text = e.title
             holder.tvTime.text = fmtLocal(e.serverTime)
             holder.tvDevice.text = names[e.deviceId]
@@ -290,19 +212,22 @@ class EventsActivity : AppCompatActivity() {
             } else {
                 holder.tvDetail.visibility = View.GONE
             }
-            val colorRes = if (Event.isAlarm(e.type, e.attributes)) R.color.danger else Event.typeColor(e.type)
-            holder.vTypeBar.setBackgroundColor(
-                ContextCompat.getColor(holder.vTypeBar.context, colorRes)
+            // 紧急事件标题用危险红强调，普通事件用主墨色（Jiumi 状态语义色）
+            holder.tvTitle.setTextColor(
+                ContextCompat.getColor(
+                    holder.itemView.context,
+                    if (Event.isAlarm(e.type, e.attributes)) R.color.danger else R.color.text_primary
+                )
             )
             holder.itemView.setOnClickListener { onClick(e) }
         }
 
         class VH(view: View) : RecyclerView.ViewHolder(view) {
+            val ivIcon: TextView = view.findViewById(R.id.ivIcon)
             val tvTitle: TextView = view.findViewById(R.id.tvTitle)
             val tvTime: TextView = view.findViewById(R.id.tvTime)
             val tvDevice: TextView = view.findViewById(R.id.tvDevice)
             val tvDetail: TextView = view.findViewById(R.id.tvDetail)
-            val vTypeBar: View = view.findViewById(R.id.vTypeBar)
         }
     }
 }

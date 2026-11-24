@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 按钮未填完表单时保持浅蓝，避免首屏出现灰块 -->
+<!-- 按钮按压/禁用态：浅容器色，胶囊圆角（与主按钮统一） -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <gradient
-        android:angle="315"
-        android:startColor="#FFA9C9FF"
-        android:endColor="#FF8FB2FA"
-        android:type="linear" />
-    <corners android:radius="12dp" />
+    <solid android:color="@color/brand_light" />
+    <corners android:radius="24dp" />
 </shape>

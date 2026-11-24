@@ -1,19 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 配色对齐上一轮 Web/APK 重制与途强在线：亮蓝主色 + 浅灰底 -->
+<!-- 配色完全对齐 Jiumi（中性灰 + 石墨主色，无蓝色主色）。
+     Light: canvas F0F0F3 / card FBFBFC / ink 1D1D1F / inkSecondary 6E6E73
+     主按钮与选中态 = 石墨 primary（Jiumi colorScheme.primary = LightInk）。 -->
 <resources>
-    <color name="brand">#FF3E80FE</color>          <!-- 主色：亮蓝 -->
-    <color name="brand_dark">#FF2F6CE0</color>
-    <color name="brand_light">#FFA9C9FF</color>    <!-- 按钮禁用态 -->
-    <color name="brand_top">#FF5B9BFF</color>
-    <color name="bg">#FFF6F8FB</color>             <!-- 页面背景 -->
-    <color name="surface">#FFFFFFFF</color>        <!-- 卡片白 -->
-    <color name="text_primary">#FF1E293B</color>
-    <color name="text_secondary">#FF64748B</color>
-    <color name="divider">#FFE2E8F0</color>
-    <color name="online">#FF16A34A</color>
-    <color name="offline">#FF475569</color>
-    <color name="warning">#FFF59E0B</color>
-    <color name="danger">#FFEF4444</color>
-    <color name="nav_selected">#1A3E80FE</color>
-    <color name="ic_launcher_background">#FF3E80FE</color>
+    <color name="brand">#FF1D1D1F</color>          <!-- 主色：石墨（Jiumi primary = LightInk） -->
+    <color name="brand_dark">#FF000000</color>     <!-- 按压态更深 -->
+    <color name="brand_light">#FFE3E3E8</color>    <!-- 禁用容器（Jiumi LightContainerHigh） -->
+    <color name="on_brand">#FFFFFFFF</color>       <!-- 主按钮文字反色（浅色下白字） -->
+    <color name="brand_top">#FF6E6E73</color>
+    <color name="bg">#FFF0F0F3</color>             <!-- 页面背景（Jiumi LightCanvas） -->
+    <color name="surface">#FFFBFBFC</color>        <!-- 卡片（Jiumi LightCard） -->
+    <color name="text_primary">#FF1D1D1F</color>   <!-- 主墨色（Jiumi LightInk） -->
+    <color name="text_secondary">#FF6E6E73</color> <!-- 次墨色（Jiumi LightInkSecondary） -->
+    <color name="divider">#FFE3E3E8</color>        <!-- 分隔线（Jiumi LightContainerHigh） -->
+    <color name="online">#FF2FA36B</color>         <!-- Jiumi StatusSuccess -->
+    <color name="offline">#FF6E6E73</color>
+    <color name="warning">#FFE5900F</color>        <!-- Jiumi StatusWarning -->
+    <color name="danger">#FFE5484D</color>         <!-- Jiumi StatusError -->
+    <color name="nav_selected">#1A1D1D1F</color>
+    <color name="ic_launcher_background">#FF1D1D1F</color>
 </resources>

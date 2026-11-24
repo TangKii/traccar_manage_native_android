@@ -11,10 +11,13 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import com.traccar.nativeapp.R
 import com.traccar.nativeapp.data.Api
+import com.traccar.nativeapp.data.Event
 import com.traccar.nativeapp.data.Prefs
+import com.traccar.nativeapp.data.SocketController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,22 +26,21 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 /**
- * 告警实时推送（前台服务）：
- * 以前台服务常驻，周期性轮询 /api/reports/events（官方唯一的时间段事件列表接口），
- * 发现比“已读时间”更新的事件就发系统通知。
- * （Traccar 的 WebSocket 只推位置/设备状态，不推 events，故用轮询更可靠；
- *  官方并不存在 GET /api/events 列表接口。）
- * 设备上报的告警 / 上线离线 / 进出围栏等都会进入事件，从而触发通知。
+ * 告警推送（前台服务），双通道：
+ *   1) 实时：WebSocket /api/socket 推 events，事件到达即刻发系统通知（秒级）；
+ *   2) 兜底：每 60s 轮询 /api/reports/events，防止 WebSocket 断线期间漏告警。
+ * 两条通道共用「通知去重基线」（已通知的最大 event id），同一事件只通知一次。
  *
- * 轮询策略（避免每 60 秒全量拉 7 天）：
- *   - 只拉「已读时间 ~ 现在」的增量区间，区间最多回溯 7 天；
- *   - 设备 ID 缓存 10 分钟刷新一次，设备增减无需重启服务；
- *   - 首次运行只写基线，不推送历史告警。
+ * 去重基线（prefs.lastNotifiedEventId，服务端自增 id）与首页铃铛未读（prefs.lastEventSeenTime）
+ * 刻意分开：通知推送只代表"系统通知过"，不能清掉用户尚未点开的未读红点。
+ *
+ * 首次运行：以服务启动时刻为界，只压制启动前的历史事件，保留启动后新发生的告警（便于用户测试推送）。
  */
 class NotificationService : Service() {
 
@@ -46,25 +48,35 @@ class NotificationService : Service() {
     private lateinit var api: Api
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pollJob: Job? = null
+    private var socket: SocketController? = null
 
     private val channelId = "traccar_alerts"
     private val foregroundId = 1
     private val alertId = 2
+    /** 兜底轮询间隔：实时通道正常时几乎用不到，取保守值省流量 */
     private val intervalMs = 60_000L
     private val deviceCacheTtlMs = 10 * 60_000L
 
     private var cachedDeviceIds = emptyList<Long>()
     private var deviceCacheAtMs = 0L
+    /** 服务本次启动时刻：首次建基线时用来区分"历史"与"启动后新发生"的告警 */
+    private var startedAtMs = 0L
 
     override fun onCreate() {
         super.onCreate()
         prefs = Prefs(this)
         api = Api(prefs)
+        startedAtMs = System.currentTimeMillis()
         createChannel()
         startForeground(foregroundId, foregroundNotification())
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!prefs.isLoggedIn) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        connectRealtime()
         if (pollJob?.isActive != true) {
             pollJob = scope.launch { pollLoop() }
         }
@@ -73,7 +85,15 @@ class NotificationService : Service() {
 
     override fun onDestroy() {
         pollJob?.cancel()
+        socket?.disconnect()
+        socket = null
         scope.cancel()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
         super.onDestroy()
     }
 
@@ -82,22 +102,86 @@ class NotificationService : Service() {
     /**
      * Android 15（API 35）起，dataSync 类型前台服务在后台累计运行超过时限后，
      * 系统会回调本方法；必须主动停止服务，否则会被判定为无响应。
-     * 服务停止后，用户下次打开 App（MainActivity）会重新拉起轮询。
+     * 服务停止后，用户下次打开 App（MainActivity）会重新拉起。
      */
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     override fun onTimeout(startId: Int, fgsType: Int) {
         Log.w(TAG, getString(R.string.notif_timeout_log))
-        pollJob?.cancel()
         stopSelf(startId)
     }
 
+    // ---------------- 实时通道 ----------------
+
+    private fun connectRealtime() {
+        socket?.disconnect()
+        socket = SocketController(
+            api = api,
+            onDevices = { },
+            onPositions = { },
+            onState = { connected ->
+                Log.i(TAG, if (connected) "告警实时通道已连接" else "告警实时通道断开，等待重连")
+            },
+            onEvents = { events -> handleIncomingEvents(events, fromRealtime = true) }
+        )
+        socket?.connect()
+    }
+
+    /**
+     * 统一处理新事件（实时 / 轮询都走这里）。
+     *
+     * 去重基准用服务端单调递增的 [Event.id]，绝不用 eventTime：
+     * 告警事件的 eventTime 取自设备上报的 GPS 时间，设备时钟不准时会固定不变甚至倒退，
+     * 用时间判断先后会把新事件全部误判为旧事件，导致完全收不到推送。event id 由服务端
+     * 数据库自增分配，与设备时钟无关，是唯一可靠的先后依据。两条通道共享同一 id 基线。
+     *
+     * @param fromRealtime true=WebSocket 实时推送；false=轮询兜底
+     */
+    private fun handleIncomingEvents(events: List<Event>, fromRealtime: Boolean) {
+        if (events.isEmpty()) return
+        val baseline = prefs.lastNotifiedEventId
+
+        // 按 id 过滤 + 批内去重（id 单调递增，可可靠判先后）
+        val fresh = events.filter { it.id > baseline }.distinctBy { it.id }
+        if (fresh.isEmpty()) return
+
+        val newest = fresh.maxOf { it.id }
+
+        // 首次运行：建立基线。只压制"服务启动前"的历史告警；启动后新发生的照常推送，
+        // 这样用户装好后立刻触发一条测试告警就能收到，不会以为推送坏了。
+        if (baseline == 0L) {
+            val afterStart = fresh.filter { e ->
+                val ms = isoMillis(e.serverTime)
+                ms == null || ms >= startedAtMs - 2000L  // 时间缺失时保守按新事件处理
+            }
+            prefs.lastNotifiedEventId = newest
+            if (afterStart.isEmpty()) {
+                Log.i(TAG, "首次建立通知基线，历史事件数=${fresh.size}（不推送历史）")
+                return
+            }
+            Log.i(TAG, "首次建立通知基线，推送启动后新告警 ${afterStart.size} 条")
+            postAlert(afterStart.sortedByDescending { it.id })
+            return
+        }
+
+        prefs.lastNotifiedEventId = newest
+        postAlert(fresh.sortedByDescending { it.id })
+        Log.i(TAG, getString(R.string.notif_pushed, fresh.size) +
+            (if (fromRealtime) "（实时）" else "（轮询）"))
+    }
+
+    // ---------------- 兜底轮询 ----------------
+
     private suspend fun pollLoop() {
-        // 首次以较短间隔快速建立基线，之后按 intervalMs
         while (scope.isActive) {
             try {
-                if (prefs.isLoggedIn) pollOnce()
+                if (prefs.isLoggedIn) {
+                    pollOnce()
+                } else {
+                    stopSelf()
+                    break
+                }
             } catch (e: Exception) {
-                // 网络异常下一轮继续；同时输出真实错误便于用 logcat 排查（token 过期/报表被禁用等）
+                // 网络异常下一轮继续；同时输出真实错误便于用 logcat 排查
                 Log.w(TAG, getString(R.string.notif_poll_failed), e)
             }
             delay(intervalMs)
@@ -105,8 +189,6 @@ class NotificationService : Service() {
     }
 
     private suspend fun pollOnce() {
-        // 设备列表异常不再静默吞掉，交给 pollLoop 记录，避免"一直无通知却查不出原因"。
-        // 缓存 10 分钟过期：设备新增/删除后无需重启前台服务即可生效。
         val nowMs = System.currentTimeMillis()
         if (cachedDeviceIds.isEmpty() || nowMs - deviceCacheAtMs >= deviceCacheTtlMs) {
             cachedDeviceIds = api.devices().map { it.id }
@@ -115,30 +197,17 @@ class NotificationService : Service() {
         }
         if (cachedDeviceIds.isEmpty()) return
 
-        val seen = prefs.lastEventSeenTime
-        if (seen.isEmpty()) {
-            // 首次运行：只建立基线，不轰炸历史告警
-            prefs.lastEventSeenTime = isoNow()
-            return
-        }
-
-        val (from, to) = pollRange(seen)
-        val newOnes = api.events(deviceIds = cachedDeviceIds, from = from, to = to)
-            .filter { (it.serverTime ?: "") > seen }
-            .sortedByDescending { it.serverTime ?: "" }
-        if (newOnes.isEmpty()) {
-            // 没有新事件也要把轮询窗口前移，否则已读时间长期不变，
-            // 查询区间会逐日增长到 7 天上限，退化成每 60 秒全量拉取。
-            prefs.lastEventSeenTime = to
-            return
-        }
-
-        postAlert(newOnes)
-        newOnes.firstOrNull()?.serverTime?.let { prefs.lastEventSeenTime = it }
-        Log.i(TAG, getString(R.string.notif_pushed, newOnes.size))
+        // 查询窗口最多回溯 7 天（仅用于缩小 /reports/events 的查询范围）。
+        // 是否"新事件"完全交给 handleIncomingEvents 按自增 id 判定，与设备时钟无关。
+        val (from, to) = pollRange()
+        val fetched = api.events(deviceIds = cachedDeviceIds, from = from, to = to)
+        if (fetched.isEmpty()) return
+        handleIncomingEvents(fetched, fromRealtime = false)
     }
 
-    private fun postAlert(events: List<com.traccar.nativeapp.data.Event>) {
+    // ---------------- 通知发布 ----------------
+
+    private fun postAlert(events: List<Event>) {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val count = events.size
         val latest = events.first()
@@ -158,12 +227,17 @@ class NotificationService : Service() {
             Intent(this, EventsActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        // 通知栏时间戳用「推送到达的真实时刻」（系统时间）。
+        // 不用 eventTime：告警的 eventTime 取自设备上报的 GPS 时间，设备时钟不准时
+        // 会固定在某个错误值（如 18:44），通知栏跟着显示就会误导用户。
         val n = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_bell)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setWhen(System.currentTimeMillis())
+            .setShowWhen(true)
             .setContentIntent(tap)
             .setAutoCancel(true)
             .build()
@@ -202,28 +276,31 @@ class NotificationService : Service() {
             .build()
     }
 
+    private val isoInstantFormatter = DateTimeFormatter
+        .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        .withZone(ZoneOffset.UTC)
+
     /**
-     * 增量查询区间：从「已读时间」到「现在」，最多回溯 7 天。
-     * Traccar 的时间参数要求 ISO-8601 带 'Z'；同一服务端返回的 eventTime 也是该格式，
-     * 因此字符串比较与时间先后一致。
+     * 轮询查询区间：最近 7 天到「现在」。
+     * 去重由 [handleIncomingEvents] 按自增 event id 完成，所以这里不需要按上次通知时间收紧窗口——
+     * 固定回溯窗口反而能兜住"迟到"的事件，不会因设备时钟异常而漏掉。
      */
-    private fun pollRange(seen: String): Pair<String, String> {
-        val fmt = isoFmt()
-        val to = fmt.format(Calendar.getInstance().time)
-        val earliest = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -7) }
-        val floor = fmt.format(earliest.time)
-        val from = if (seen > floor) seen else floor
+    private fun pollRange(): Pair<String, String> {
+        val now = Instant.now()
+        val to = isoInstantFormatter.format(now)
+        val from = isoInstantFormatter.format(now.minus(7, ChronoUnit.DAYS))
         return from to to
     }
 
-    private fun isoNow(): String = isoFmt().format(Calendar.getInstance().time)
-
-    private fun isoFmt(): SimpleDateFormat =
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }
-
     companion object {
         private const val TAG = "NotificationService"
+
+        fun start(context: Context) {
+            ContextCompat.startForegroundService(context, Intent(context, NotificationService::class.java))
+        }
+
+        fun stop(context: Context) {
+            context.stopService(Intent(context, NotificationService::class.java))
+        }
     }
 }

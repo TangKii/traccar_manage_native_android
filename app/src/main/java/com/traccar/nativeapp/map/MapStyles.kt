@@ -30,35 +30,50 @@ object MapStyles {
     }
 
     /** 与 Web 版 styleCustom({tiles, minZoom:3, maxZoom:18}) 生成的结构一致 */
-    private fun styleJson(tiles: String, attribution: String): String = """
-    {
-      "version": 8,
-      "sources": {
-        "amap": {
-          "type": "raster",
-          "tiles": [$tiles],
-          "tileSize": 256,
-          "minzoom": 3,
-          "maxzoom": 18,
-          "attribution": "$attribution"
+    private fun styleJson(tiles: String, attribution: String, bgColor: String, isNight: Boolean = false): String {
+        val paintJson = if (isNight) {
+            """, "paint": { "raster-brightness-max": 0.72, "raster-saturation": -0.15 }"""
+        } else {
+            ""
         }
-      },
-      "layers": [
-        { "id": "amap-layer", "type": "raster", "source": "amap" }
-      ]
+        return """
+        {
+          "version": 8,
+          "sources": {
+            "amap": {
+              "type": "raster",
+              "tiles": [$tiles],
+              "tileSize": 256,
+              "minzoom": 3,
+              "maxzoom": 18,
+              "attribution": "$attribution"
+            }
+          },
+          "layers": [
+            { "id": "background", "type": "background", "paint": { "background-color": "$bgColor" } },
+            { "id": "amap-layer", "type": "raster", "source": "amap"$paintJson }
+          ]
+        }
+        """.trimIndent()
     }
-    """.trimIndent()
 
-    fun styleJsonFor(id: String): String {
+    fun styleJsonFor(id: String, isNight: Boolean = false): String {
         val attribution = AppText.get(R.string.map_attribution)
+        // 瓦片下载完成前的底色，避免 MapLibre GLSurfaceView 默认黑屏。
+        // 道路图白天用浅灰白、夜间用深灰；卫星图底色偏深（瓦片本身是深色）。
+        val bgColor = when {
+            isNight -> "#2A2A2E"
+            id == AUTO_NAVI_SATELLITE -> "#1C1C1F"
+            else -> "#F0F0F3"
+        }
         return when (id) {
-            AUTO_NAVI_SATELLITE -> styleJson(satelliteTiles(), attribution)
-            else -> styleJson(roadTiles(), attribution)
+            AUTO_NAVI_SATELLITE -> styleJson(satelliteTiles(), attribution, bgColor, isNight)
+            else -> styleJson(roadTiles(), attribution, bgColor, isNight)
         }
     }
 
-    fun builderFor(id: String): Style.Builder =
-        Style.Builder().fromJson(styleJsonFor(id))
+    fun builderFor(id: String, isNight: Boolean = false): Style.Builder =
+        Style.Builder().fromJson(styleJsonFor(id, isNight))
 
     fun displayName(id: String): String = when (id) {
         AUTO_NAVI_SATELLITE -> AppText.get(R.string.map_style_satellite)

@@ -2,7 +2,9 @@ package com.traccar.nativeapp.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import java.util.Calendar
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 /**
  * 本地持久化：服务器地址、Bearer token、记住的账号邮箱。
@@ -56,6 +58,26 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_EVENT_SEEN, "") ?: ""
         set(value) = sp.edit().putString(KEY_EVENT_SEEN, value).apply()
 
+    /**
+     * 通知去重基线：已推送通知的最新事件 id。
+     * 必须与 [lastEventSeenTime]（用户已读时间）分开——实时推送只代表"通知过"，
+     * 不能清掉首页铃铛的未读红点（那要等用户真正点进告警页）。
+     */
+    /**
+     * 告警通知去重基线：已通知事件的最大 event id。
+     *
+     * 必须用服务端单调递增的 id，而不是 eventTime：告警事件的 eventTime 取自设备上报的
+     * GPS 时间（Traccar Event 构造函数 eventTime = position.getDeviceTime()），设备时钟
+     * 不准时该值可能固定不变甚至倒退，用时间做基线会把新事件全部误判为旧事件、导致漏推。
+     * event id 由服务端数据库自增分配，与设备时钟无关，是唯一可靠的先后依据。
+     *
+     * 与未读红点基线 lastEventSeenTime 解耦（通知过 ≠ 用户已读）。
+     * 0 表示尚无基线（首次运行）。
+     */
+    var lastNotifiedEventId: Long
+        get() = sp.getLong(KEY_NOTIFIED_EVENT_ID, 0L)
+        set(value) = sp.edit().putLong(KEY_NOTIFIED_EVENT_ID, value).apply()
+
     val isConfigured: Boolean get() = serverUrl.startsWith("http://") || serverUrl.startsWith("https://")
     val isLoggedIn: Boolean get() = token.isNotEmpty()
 
@@ -71,13 +93,8 @@ class Prefs(context: Context) {
     fun clearAll() = sp.edit().clear().apply()
 
     /** 生成 6 个月后的 ISO 时间，用于 POST /api/session/token 的 expiration 参数 */
-    fun tokenExpiration(): String {
-        val cal = Calendar.getInstance().apply { add(Calendar.MONTH, 6) }
-        // 服务端接受 ISO-8601；用简单格式即可（与 Web 版 dayjs().toISOString() 对齐）
-        return java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
-            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
-            .format(cal.time)
-    }
+    fun tokenExpiration(): String =
+        ISO_EXPIRATION_FORMATTER.format(OffsetDateTime.now(ZoneOffset.UTC).plusMonths(6))
 
     companion object {
         private const val KEY_SERVER = "serverUrl"
@@ -89,5 +106,10 @@ class Prefs(context: Context) {
         private const val KEY_AUTO = "autoLogin"
         private const val KEY_MAP = "mapStyle"
         private const val KEY_EVENT_SEEN = "lastEventSeenTime"
+        private const val KEY_NOTIFIED_EVENT_ID = "lastNotifiedEventId"
+
+        private val ISO_EXPIRATION_FORMATTER = DateTimeFormatter
+            .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+            .withZone(ZoneOffset.UTC)
     }
 }

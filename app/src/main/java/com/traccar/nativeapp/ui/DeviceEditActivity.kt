@@ -9,7 +9,7 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.traccar.nativeapp.R
@@ -42,6 +42,18 @@ class DeviceEditActivity : AppCompatActivity() {
     private lateinit var tvHint: TextView
     private lateinit var btnSave: Button
     private lateinit var btnDelete: Button
+
+    private var pendingDeleteId: Long = -1L
+
+    /** 删除确认页：确认后执行删除 */
+    private val deleteConfirmLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK && pendingDeleteId >= 0) {
+            doDelete(pendingDeleteId)
+            pendingDeleteId = -1L
+        }
+    }
 
     private var original: ManagedDevice? = null
     private var isNew = true
@@ -201,12 +213,18 @@ class DeviceEditActivity : AppCompatActivity() {
 
     private fun confirmDelete() {
         val d = original ?: return
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.device_delete_title))
-            .setMessage(getString(R.string.device_delete_message, d.name))
-            .setNegativeButton(getString(R.string.common_cancel), null)
-            .setPositiveButton(getString(R.string.common_confirm_delete)) { _, _ -> doDelete(d.id) }
-            .show()
+        pendingDeleteId = d.id
+        deleteConfirmLauncher.launch(
+            ConfirmActivity.intent(
+                host = this,
+                title = getString(R.string.device_delete_title),
+                heading = getString(R.string.device_delete_title),
+                message = getString(R.string.device_delete_message, d.name),
+                positive = getString(R.string.common_confirm_delete),
+                danger = true,
+                iconRes = R.drawable.ic_trash,
+            )
+        )
     }
 
     private fun doDelete(id: Long) {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 设备卡片左侧蓝色圆形图标底 -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <gradient android:angle="315" android:startColor="#FF5B9BFF"
-        android:endColor="#FF2F6CE0" android:type="linear" />
+<!-- Jiumi IconTile 风格：中性灰圆角瓦片（图标不染色，状态用文字/徽标表达） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#0F1D1D1F" />
+    <corners android:radius="10dp" />
 </shape>

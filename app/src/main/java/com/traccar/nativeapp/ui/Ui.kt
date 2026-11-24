@@ -1,8 +1,6 @@
 package com.traccar.nativeapp.ui
 
 import android.app.Activity
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.Configuration
@@ -21,13 +19,12 @@ import org.maplibre.android.annotations.Polyline
 import org.maplibre.android.annotations.PolylineOptions
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
-import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
-import java.util.TimeZone
 import kotlin.math.hypot
 
 /**
@@ -113,37 +110,63 @@ private fun findActivity(context: Context): Activity? {
     return null
 }
 
+private val localDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
 /**
- * 把 Traccar 返回的 ISO-8601 时间（UTC，如 2024-01-01T14:00:00.000Z）转成
- * 设备本地时区显示：yyyy-MM-dd HH:mm。直接截断原始串会显示成 UTC 时间，
- * 导致用户看到的时间比实际晚/早若干小时（时区问题）。
- * 解析失败则回退为原始串裁剪。
+ * 把 Traccar 返回的 ISO-8601 时间统一解析为 Instant（绝对时刻）。
+ * 兼容服务端可能出现的多种写法：
+ *   - 带 Z：      2024-01-01T14:00:00Z / 2024-01-01T14:00:00.000Z
+ *   - 带偏移：    2024-01-01T14:00:00.000+00:00 / +08:00
+ *   - 不带时区：  2024-01-01T14:00:00 / 2024-01-01T14:00:00.000（按 UTC 处理）
+ *   - 空格分隔：  2024-01-01 14:00:00（按 UTC 处理）
+ * 任何写法都归一到同一绝对时刻，比较/换算不再依赖字符串字面。
+ */
+fun parseIsoInstant(iso: String?): java.time.Instant? {
+    if (iso.isNullOrBlank()) return null
+    val text = iso.trim()
+    // 1) 带 Z 或带偏移的标准 ISO（OffsetDateTime 同时覆盖两者）
+    try {
+        return OffsetDateTime.parse(text).toInstant()
+    } catch (_: Exception) { /* 尝试下一种 */ }
+    // 2) 纯 Z 的 Instant（部分格式 OffsetDateTime 不接受，如 6 位小数）
+    try {
+        return java.time.Instant.parse(text)
+    } catch (_: Exception) { /* 尝试下一种 */ }
+    // 3) 不带时区：统一按 UTC 解释（Traccar 内部时间均为 UTC）
+    val localText = text.replace(' ', 'T')
+    try {
+        return java.time.LocalDateTime.parse(localText).toInstant(ZoneOffset.UTC)
+    } catch (_: Exception) { /* 尝试下一种 */ }
+    // 4) 个别服务端返回毫秒时间戳（数字串）
+    return try {
+        java.time.Instant.ofEpochMilli(text.toLong())
+    } catch (_: Exception) {
+        null
+    }
+}
+
+/** 时间比较统一走绝对毫秒，杜绝 "...Z" 与 "...+00:00" 字符串比较错序。 */
+fun isoMillis(iso: String?): Long? = parseIsoInstant(iso)?.toEpochMilli()
+
+/**
+ * 把 Traccar 返回的 ISO-8601 时间转成设备本地时区显示：yyyy-MM-dd HH:mm。
+ * 主路径与兜底路径都走 [parseIsoInstant]，确保任何格式都转换到设备时区；
+ * 早期兜底直接截取 UTC 原始串，导致显示时间与本地相差若干小时（时区问题）。
  */
 fun fmtLocal(iso: String?): String {
-    if (iso.isNullOrEmpty()) return "--"
-    return try {
-        val t = try {
-            OffsetDateTime.parse(iso)
-        } catch (_: Exception) {
-            // Traccar 个别字段可能返回不带时区的串，按 UTC 解析
-            java.time.LocalDateTime.parse(iso).atOffset(java.time.ZoneOffset.UTC)
-        }
-        t.atZoneSameInstant(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-    } catch (_: Exception) {
-        iso.take(16).replace("T", " ")
-    }
+    val instant = parseIsoInstant(iso) ?: return if (iso.isNullOrBlank()) "--" else iso
+    return instant.atZone(ZoneId.systemDefault()).format(localDateTimeFormatter)
 }
 
 /**
  * 把本地 Calendar 转成 Traccar 需要的 ISO-8601 UTC 串（带 Z 后缀）。
  * Traccar 的 DateTimeUtils.parseDate 严格要求 Z，否则解析为 null。
+ * 使用不可变且线程安全的 DateTimeFormatter 替换非线程安全的 SimpleDateFormat。
  */
-private val utcIsoFmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-    timeZone = TimeZone.getTimeZone("UTC")
-}
+private val utcIsoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    .withZone(ZoneOffset.UTC)
 
-fun isoUtc(cal: Calendar): String = utcIsoFmt.format(cal.time)
+fun isoUtc(cal: Calendar): String = utcIsoFormatter.format(cal.toInstant())
 
 /** 本地日历「今天/指定偏移天数的 00:00」 */
 fun dayStartCal(offsetDays: Int): Calendar =
@@ -152,32 +175,6 @@ fun dayStartCal(offsetDays: Int): Calendar =
         set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }
 
-/**
- * 选择「日期 + 小时」（精确到小时，分钟归零）：先弹日期选择器，再弹小时选择器。
- * 用于轨迹回放 / 报表的自定义时间范围。
- */
-fun pickDateTime(context: Context, initial: Calendar?, onPicked: (Calendar) -> Unit) {
-    val cal = initial ?: Calendar.getInstance()
-    DatePickerDialog(
-        context,
-        { _, y, m, d ->
-            val c = Calendar.getInstance().apply {
-                set(y, m, d, cal.get(Calendar.HOUR_OF_DAY), 0, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            TimePickerDialog(
-                context,
-                { _, h, _ ->
-                    c.set(Calendar.HOUR_OF_DAY, h)
-                    c.set(Calendar.MINUTE, 0); c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0)
-                    onPicked(c)
-                },
-                cal.get(Calendar.HOUR_OF_DAY), 0, true
-            ).show()
-        },
-        cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)
-    ).show()
-}
 
 /**
  * 轨迹绘制的共享规则与配色：轨迹回放页、报表行程地图页必须完全一致。

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 登录/配置页顶部品牌圆形 -->
+<!-- 登录/配置页顶部品牌圆形：Jiumi 石墨渐变 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <gradient android:angle="270" android:startColor="#FF6BA6FF"
-        android:endColor="#FF3E80FE" android:type="linear" />
+    <gradient android:angle="270" android:startColor="#FF3A3A3C"
+        android:endColor="#FF1D1D1F" android:type="linear" />
 </shape>

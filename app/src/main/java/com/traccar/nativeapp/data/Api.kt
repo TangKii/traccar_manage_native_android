@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
  *
  * 认证链路与已验证的 Web/Capacitor 版完全一致：
  *   1) 登录时临时保存 email:password，用 Basic 认证 POST /api/session 校验账号；
- *   2) 成功后 POST /api/session/token 换取长期 token（纯文本返回）；
+ *   2) 成功后 POST /api/session/token 换取长期 token（服务端返回 JSON 字符串，去引号）；
  *   3) 之后所有 API 用 Authorization: Bearer <token>，WebSocket 用 ?token=。
  * 这样彻底避开 WebView 跨站 Cookie 的坑，服务端 SecurityRequestFilter 原生支持。
  */
@@ -51,8 +51,9 @@ class Api(private val prefs: Prefs) {
                     basicCredentials?.let { builder.header("Authorization", it) }
                 }
             }
-            // 默认只声明 JSON；纯文本接口（/session/token、/server/geocode）在请求上显式覆盖。
-            // 不能全局强制 application/json，否则与 OpenAPI 的 text/plain 响应不一致。
+            // 默认只声明 JSON。Traccar 6.x 的 /session/token、/server/geocode 在服务端都是
+            // 类级 @Produces(application/json)（方法返回 String，未覆盖注解），
+            // 请求 Accept 必须用 application/json，用 text/plain 会触发 Jersey 内容协商 406。
             if (chain.request().header("Accept") == null) {
                 builder.header("Accept", "application/json")
             }
@@ -145,7 +146,7 @@ class Api(private val prefs: Prefs) {
             // 2) 申请长期 token（6 个月有效期）
             val tokenReq = Request.Builder()
                 .url(url("session/token"))
-                .header("Accept", "text/plain")
+                .header("Accept", "application/json")
                 .post(FormBody.Builder().add("expiration", prefs.tokenExpiration()).build())
                 .build()
             val token = bodyOf(execute(tokenReq)).trim().trim('"')
@@ -224,7 +225,7 @@ class Api(private val prefs: Prefs) {
                         "&longitude=${java.net.URLEncoder.encode(longitude.toString(), "UTF-8")}"
                 val req = Request.Builder()
                     .url(url("server/geocode?$q"))
-                    .header("Accept", "text/plain")
+                    .header("Accept", "application/json")
                     .get()
                     .build()
                 bodyOf(execute(req)).trim().trim('"').ifEmpty { null }

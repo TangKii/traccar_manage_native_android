@@ -138,4 +138,19 @@
     <string name="confirm">确定</string>
     <string name="cancel">取消</string>
     <string name="unit_kmh">km/h</string>
+
+    <!-- Compose 组件库通用文案（对齐 Jiumi） -->
+    <string name="action_back">返回</string>
+    <string name="connection_current_method">当前方式</string>
+    <string name="duration_days_hours">%1$d 天 %2$d 小时</string>
+    <string name="duration_hours_minutes">%1$d 小时 %2$d 分钟</string>
+    <string name="duration_minutes">%1$d 分钟</string>
+    <string name="session_in_progress">进行中</string>
+
+    <!-- 品牌开屏 -->
+    <string name="splash_tagline">实时定位 · 尽在掌握</string>
+    <string name="splash_loading">正在启动…</string>
+
+    <!-- 告警时间语义：Traccar 的事件时间取自设备上报的 GPS 时间，非手机当前时间 -->
+    <string name="label_event_device_time">设备上报时间</string>
 </resources>

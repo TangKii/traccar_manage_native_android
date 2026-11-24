@@ -15,6 +15,8 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -27,9 +29,10 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.traccar.nativeapp.ui.glass.Glass
-import java.text.SimpleDateFormat
+import com.traccar.nativeapp.ui.compose.theme.JiumiTheme
+import com.traccar.nativeapp.ui.compose.TraccarTabBar
+import androidx.compose.ui.unit.dp
 import java.util.Calendar
-import java.util.Locale
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.traccar.nativeapp.R
 import com.traccar.nativeapp.data.Api
@@ -61,6 +64,21 @@ import org.maplibre.android.maps.Style
  */
 class MainActivity : AppCompatActivity() {
 
+    /** 退出登录确认页：确认后执行真正的登出与跳转 */
+    private val logoutConfirmLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            lifecycleScope.launch {
+                stopAlertService()
+                api.logout()
+                startActivity(Intent(this@MainActivity, LoginActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
+                finish()
+            }
+        }
+    }
+
     private lateinit var prefs: Prefs
     private lateinit var api: Api
     private var socket: SocketController? = null
@@ -72,6 +90,7 @@ class MainActivity : AppCompatActivity() {
 
     // 地图
     private lateinit var mapHolder: FrameLayout
+    private lateinit var mapLoading: View
     private var mapView: MapView? = null
     private var maplibreMap: MapLibreMap? = null
     private var mapReady = false
@@ -92,8 +111,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: DeviceAdapter
     private var allDevices = listOf<Device>()
 
-    // 当前选中的底部 Tab
-    private var currentTab = 0
+    // 当前选中的底部 Tab（Compose 状态，驱动液体玻璃导航选中态）
+    private val currentTab = androidx.compose.runtime.mutableIntStateOf(0)
+
+    // 手势条（导航栏小白条）高度，单位 dp，驱动液体玻璃导航上移避让
+    private val navBarInsetDp = androidx.compose.runtime.mutableStateOf(0f)
 
     // 统一顶栏标题
     private lateinit var tvTopTitle: TextView
@@ -116,6 +138,7 @@ class MainActivity : AppCompatActivity() {
 
         bindViews()
         setupBottomNav()
+        setupBackNavigation()
         setupMap(savedInstanceState)
         setupDevicesList()
         setupMine()
@@ -130,7 +153,7 @@ class MainActivity : AppCompatActivity() {
     /** 启动告警前台服务（实时推送），并申请通知权限（Android 13+） */
     private fun startAlertService() {
         if (!prefs.isLoggedIn) return
-        ContextCompat.startForegroundService(this, Intent(this, NotificationService::class.java))
+        NotificationService.start(this)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -140,6 +163,24 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    private fun stopAlertService() {
+        NotificationService.stop(this)
+    }
+
+    /** 返回手势交互：在非首页 Tab 时按返回键切回首页，在首页按返回键退出应用 */
+    private fun setupBackNavigation() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (currentTab.intValue != 0) {
+                    showTab(0)
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
     }
 
     /**
@@ -165,6 +206,7 @@ class MainActivity : AppCompatActivity() {
         pageDevices = findViewById(R.id.pageDevices)
         pageMine = findViewById(R.id.pageMine)
         mapHolder = findViewById(R.id.mapHolder)
+        mapLoading = findViewById(R.id.mapLoading)
         rvDevices = findViewById(R.id.rvDevices)
         etSearch = findViewById(R.id.etSearch)
         swipeRefresh = findViewById(R.id.swipeRefresh)
@@ -187,51 +229,54 @@ class MainActivity : AppCompatActivity() {
     // ---------------- 底部导航 ----------------
 
     private fun setupBottomNav() {
-        findViewById<View>(R.id.tabMap).setOnClickListener { showTab(0) }
-        findViewById<View>(R.id.tabDevices).setOnClickListener { showTab(1) }
-        findViewById<View>(R.id.tabMine).setOnClickListener { showTab(2) }
-
-        // 悬浮卡片导航 + 顶部搜索卡 + 右下 FAB 改为实色圆角浮层（带投影），干净清晰、文字易读。
-        Glass.apply(bottomNav, 28f)
-        Glass.apply(searchCard, 26f)
-        // 选中态导航项 + 整组 Tab 的按压反馈（90–140ms）
-        for (tabId in listOf(R.id.tabMap, R.id.tabDevices, R.id.tabMine)) {
-            Glass.pressScale(findViewById(tabId))
+        val composeNav = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.bottomNav)
+        composeNav.setContent {
+            JiumiTheme {
+                TraccarTabBar(
+                    selected = currentTab.intValue,
+                    onSelect = { showTab(it) },
+                    bottomInset = navBarInsetDp.value.dp
+                )
+            }
         }
 
-        // 右下浮动按钮（图层 / 定位）改为圆形实色浮层 + 按压反馈
+        // 顶部搜索卡保持圆角浮层
+        Glass.apply(searchCard, 26f)
+
+        // 右下浮动按钮（图层 / 定位）：圆形实色浮层 + 按压反馈，关闭投影避免阴影溢出图标
         val fabL = findViewById<View>(R.id.btnLayers)
         val fabLo = findViewById<View>(R.id.btnLocate)
-        Glass.apply(fabL, 23f)
-        Glass.apply(fabLo, 23f)
+        Glass.apply(fabL, 23f, elevationDp = 0f)
+        Glass.apply(fabLo, 23f, elevationDp = 0f)
         Glass.pressScale(fabL)
         Glass.pressScale(fabLo)
 
         // 悬浮卡片的 inset 避让：手势条高度加到卡片「外边距」（不是内边距，避免撑大白卡），
         // 同时给搜索卡片、列表、右下 FAB 组按状态栏高度与卡片高度留出安全区。
         val density = resources.displayMetrics.density
-        val cardBottomMargin = (10 * density).toInt()
         val searchTopMargin = (12 * density).toInt()
-        val navLp = bottomNav.layoutParams as FrameLayout.LayoutParams
         val cardLp = searchCard.layoutParams as FrameLayout.LayoutParams
         val fabLp = fabGroup.layoutParams as FrameLayout.LayoutParams
         val rv = rvDevices
 
-        ViewCompat.setOnApplyWindowInsetsListener(bottomNav) { _, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(composeNav) { _, insets ->
             val statusTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
             val navBar = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
 
-            navLp.bottomMargin = cardBottomMargin + navBar
-            bottomNav.requestLayout()
+            // 液体玻璃导航上移避开手势条：把手势条高度（dp）同步给 Compose
+            navBarInsetDp.value = navBar / density
 
             // 搜索卡片避开状态栏
             cardLp.topMargin = statusTop + searchTopMargin
             searchCard.requestLayout()
 
-            // 卡片导航约 66dp + 上下边距；列表与 FAB 统一留白，避免被白卡遮挡
-            val reserve = (86 * density).toInt() + navBar
+            // 顶栏已全局隐藏：设备页 / 我的页顶部补状态栏高度，让内容落到状态栏下方（与地图页对齐）
+            pageDevices.setPadding(pageDevices.paddingLeft, statusTop, pageDevices.paddingRight, pageDevices.paddingBottom)
+
+            // 玻璃导航高 56dp + 上下留白（BAR_GAP 12dp×2）；列表与 FAB 统一留白，避免被遮挡
+            val reserve = (96 * density).toInt() + navBar
             rv.setPadding(rv.paddingLeft, rv.paddingTop, rv.paddingRight, reserve)
-            pageMine.setPadding(pageMine.paddingLeft, pageMine.paddingTop, pageMine.paddingRight, reserve)
+            pageMine.setPadding(pageMine.paddingLeft, statusTop, pageMine.paddingRight, reserve)
             fabLp.bottomMargin = reserve + (6 * density).toInt()
             fabGroup.requestLayout()
             insets
@@ -239,43 +284,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showTab(index: Int) {
-        currentTab = index
+        currentTab.intValue = index
         pageMap.visibility = if (index == 0) View.VISIBLE else View.GONE
         pageDevices.visibility = if (index == 1) View.VISIBLE else View.GONE
         pageMine.visibility = if (index == 2) View.VISIBLE else View.GONE
 
-        // 地图首页隐藏蓝色顶栏，让地图铺到状态栏后面；设备 / 我的页保留渐变顶栏
-        topBar.visibility = if (index == 0) View.GONE else View.VISIBLE
+        // 三个 Tab 统一沉浸：顶栏全部隐藏，内容铺到状态栏后面（与地图页一致，去掉"设备/我的"标题）
+        topBar.visibility = View.GONE
         // 全站浅色沉浸式：三个 Tab 都是浅底（地图页有顶部雾层），状态栏图标按 DayNight 明暗切换
         WindowInsetsControllerCompat(window, window.decorView).apply {
             isAppearanceLightStatusBars = !isNightMode(this@MainActivity)
             isAppearanceLightNavigationBars = !isNightMode(this@MainActivity)
         }
-
-        // 统一顶栏标题随 Tab 切换
-        tvTopTitle.setText(
-            when (index) {
-                1 -> R.string.nav_devices
-                2 -> R.string.nav_mine
-                else -> R.string.nav_map
-            }
-        )
-
-        // 导航高亮：选中态蓝字 + 浅蓝背景
-        setTabStyle(R.id.tabMap, R.id.ivMap, R.id.tvMap, index == 0)
-        setTabStyle(R.id.tabDevices, R.id.ivDevices, R.id.tvDevices, index == 1)
-        setTabStyle(R.id.tabMine, R.id.ivMine, R.id.tvMine, index == 2)
-    }
-
-    private fun setTabStyle(tabId: Int, ivId: Int, tvId: Int, selected: Boolean) {
-        val tab = findViewById<LinearLayout>(tabId)
-        val iv = findViewById<ImageView>(ivId)
-        val tv = findViewById<TextView>(tvId)
-        tab.setBackgroundResource(if (selected) R.drawable.bg_nav_selected else 0)
-        val color = if (selected) R.color.brand else R.color.text_secondary
-        iv.setColorFilter(getColor(color))
-        tv.setTextColor(getColor(color))
-        tv.typeface = if (selected) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
     }
 
     // ---------------- 地图 ----------------
@@ -292,7 +312,9 @@ class MainActivity : AppCompatActivity() {
             maplibreMap = map
             map.uiSettings.setCompassEnabled(false)
             map.uiSettings.setRotateGesturesEnabled(true)
-            map.setStyle(MapStyles.builderFor(prefs.mapStyle)) {
+            map.setStyle(MapStyles.builderFor(prefs.mapStyle, isNightMode(this))) {
+                // 样式就绪：隐藏加载占位（此时已渲染背景色，瓦片随后逐块加载）
+                mapLoading.visibility = View.GONE
                 refreshMarkers()
                 mapReady = true
                 drawGeofences()
@@ -370,7 +392,7 @@ class MainActivity : AppCompatActivity() {
             MapStyles.AUTO_NAVI
         }
         prefs.mapStyle = next
-        maplibreMap?.setStyle(MapStyles.builderFor(next)) {
+        maplibreMap?.setStyle(MapStyles.builderFor(next, isNightMode(this))) {
             refreshMarkers()
             geofencePolygons.clear()
             drawGeofences()
@@ -399,12 +421,13 @@ class MainActivity : AppCompatActivity() {
                 if (pos.latitude == 0.0 && pos.longitude == 0.0) continue
                 val g = CoordTransform.toAmapLatLng(pos.latitude, pos.longitude)
                 val ll = LatLng(g.first, g.second)
-                map.addMarker(
+                val marker = map.addMarker(
                     MarkerOptions().position(ll)
                         .title(device.name)
                         .snippet(pos.address ?: getString(R.string.map_speed_snippet, pos.speedKmh))
                         .icon(markerIcon)
                 )
+                deviceMarkers[device.id] = marker
                 points.add(ll)
             }
             frameCamera(points)
@@ -532,13 +555,8 @@ class MainActivity : AppCompatActivity() {
 
     /** 最近 90 天时间范围（UTC，ISO-8601，与 Traccar 服务端一致） */
     private fun last90DaysRange(): Pair<String, String> {
-        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }
-        val cal = Calendar.getInstance()
-        val to = fmt.format(cal.time)
-        cal.add(Calendar.DAY_OF_MONTH, -90)
-        val from = fmt.format(cal.time)
+        val to = isoUtc(Calendar.getInstance())
+        val from = isoUtc(Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -90) })
         return from to to
     }
 
@@ -546,18 +564,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupMine() {
         findViewById<View>(R.id.rowServer).setOnClickListener {
-            // 切换服务器：清掉登录态后回配置页（保留已填地址）
-            prefs.logout()
-            startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
-            finish()
+            startActivity(Intent(this, ServerActivity::class.java))
         }
         findViewById<View>(R.id.rowMap).setOnClickListener { toggleMapStyle() }
         findViewById<View>(R.id.rowAbout).setOnClickListener {
-            android.app.AlertDialog.Builder(this)
-                .setTitle(R.string.app_name)
-                .setMessage(getString(R.string.map_about_text))
-                .setPositiveButton(R.string.confirm, null)
-                .show()
+            startActivity(Intent(this, AboutActivity::class.java))
         }
         findViewById<View>(R.id.rowEvents).setOnClickListener {
             startActivity(Intent(this, EventsActivity::class.java))
@@ -587,11 +598,16 @@ class MainActivity : AppCompatActivity() {
             rowUserManage.visibility = if (me?.canManageUsers == true) View.VISIBLE else View.GONE
         }
         findViewById<View>(R.id.btnLogout).setOnClickListener {
-            lifecycleScope.launch {
-                api.logout()
-                startActivity(Intent(this@MainActivity, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK))
-                finish()
-            }
+            logoutConfirmLauncher.launch(
+                ConfirmActivity.intent(
+                    host = this,
+                    title = getString(R.string.mine_logout_confirm_title),
+                    heading = getString(R.string.mine_logout_confirm_title),
+                    message = getString(R.string.mine_logout_confirm_message),
+                    positive = getString(R.string.confirm),
+                    iconRes = R.drawable.ic_logout,
+                )
+            )
         }
     }
 

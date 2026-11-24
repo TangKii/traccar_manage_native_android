@@ -6,6 +6,7 @@
         <item name="colorPrimary">@color/brand</item>
         <item name="colorPrimaryDark">@color/brand_dark</item>
         <item name="colorAccent">@color/brand</item>
+        <item name="colorOnPrimary">@color/on_brand</item>
         <item name="android:windowBackground">@color/bg</item>
         <!-- 全站沉浸式：状态栏透明，让页面背景 / 地图延伸到状态栏后面 -->
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -21,8 +22,10 @@
         <item name="android:windowLightNavigationBar">true</item>
     </style>
 
-    <!-- 启动页：蓝底，避免白屏闪烁 -->
+    <!-- 启动页：石墨深底（日夜都是深色），状态栏图标强制浅色，避免白屏/图标不可见 -->
     <style name="Theme.TraccarNative.Splash" parent="Theme.TraccarNative">
         <item name="android:windowBackground">@drawable/splash_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>

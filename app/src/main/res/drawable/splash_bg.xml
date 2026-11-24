@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 启动页蓝底渐变，与上一轮品牌图标一致 -->
+<!-- 启动页石墨渐变（对齐 Jiumi 中性风，无蓝） -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <gradient
         android:angle="270"
-        android:startColor="#FF5B9BFF"
-        android:endColor="#FF2F6CE0"
+        android:startColor="#FF3A3A3C"
+        android:endColor="#FF1D1D1F"
         android:type="linear" />
 </shape>

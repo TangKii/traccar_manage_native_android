@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Jiumi IconTile 风格：中性灰圆角瓦片，图标不染色（状态用文字/徽标表达，不用颜色） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#0F1D1D1F" />
+    <corners android:radius="10dp" />
+</shape>

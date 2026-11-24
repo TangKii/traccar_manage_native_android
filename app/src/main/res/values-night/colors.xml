@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 深色配色：与浅色共用资源名，DayNight 模式自动切换。
-     主色 brand 保持不变，底/面/文字/分隔线改为低亮度，保证地图浮层与卡片层级仍可辨。 -->
+<!-- 深色配色对齐 Jiumi（近黑画布 + 深灰卡片）。
+     Dark: canvas 000000 / card 1C1C1E / ink F5F5F7 / inkSecondary 98989F
+     主按钮与选中态 = 近白 primary（Jiumi colorScheme.primary = DarkInk）。 -->
 <resources>
-    <color name="bg">#FF0B1220</color>              <!-- 页面背景 -->
-    <color name="surface">#FF151E2E</color>         <!-- 卡片 / 输入框 -->
-    <color name="text_primary">#FFE5EDF8</color>
-    <color name="text_secondary">#FF93A4BC</color>
-    <color name="divider">#FF26344A</color>
-    <color name="offline">#FF94A3B8</color>
-    <color name="online">#FF34D399</color>
-    <color name="warning">#FFFBBF24</color>
-    <color name="danger">#FFF87171</color>
-    <color name="nav_selected">#333E80FE</color>
-    <color name="brand_light">#FF33506F</color>
+    <color name="brand">#FFF5F5F7</color>          <!-- 主色：近白（Jiumi primary = DarkInk） -->
+    <color name="brand_dark">#FFEDEDED</color>     <!-- 按压态 -->
+    <color name="brand_light">#FF3A3A3C</color>    <!-- 禁用容器（Jiumi DarkContainerHighest） -->
+    <color name="on_brand">#FF000000</color>       <!-- 主按钮文字反色（深色下黑字） -->
+    <color name="brand_top">#FF98989F</color>
+    <color name="bg">#FF000000</color>              <!-- 页面背景（Jiumi DarkCanvas） -->
+    <color name="surface">#FF1C1C1E</color>         <!-- 卡片 / 输入框（Jiumi DarkCard） -->
+    <color name="text_primary">#FFF5F5F7</color>    <!-- Jiumi DarkInk -->
+    <color name="text_secondary">#FF98989F</color>  <!-- Jiumi DarkInkSecondary -->
+    <color name="divider">#FF38383A</color>         <!-- Jiumi DarkSeparator -->
+    <color name="offline">#FF98989F</color>
+    <color name="online">#FF2FA36B</color>
+    <color name="warning">#FFE5900F</color>
+    <color name="danger">#FFE5484D</color>
+    <color name="nav_selected">#33F5F5F7</color>
+    <color name="ic_launcher_background">#FFF5F5F7</color>
 </resources>

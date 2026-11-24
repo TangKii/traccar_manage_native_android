@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -23,14 +24,14 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_back"
             android:scaleType="centerInside"
-            android:contentDescription="返回" />
+            android:contentDescription="@string/desc_back" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
             android:text="@string/detail_title"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@color/on_brand"
             android:textSize="18sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -102,19 +103,31 @@
                     android:layout_marginTop="4dp" android:textColor="@color/text_primary" android:textSize="14sp" />
                 <TextView android:id="@+id/tvCoords" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginTop="6dp" android:textColor="@color/text_secondary" android:textSize="12sp" />
-            </LinearLayout>
 
-            <Button
-                android:id="@+id/btnReplay"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="20dp"
-                android:background="@drawable/selector_brand_button"
-                android:text="@string/detail_replay"
-                android:textColor="#FFFFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:stateListAnimator="@null" />
+                <View android:layout_width="match_parent" android:layout_height="1px"
+                    android:layout_marginTop="12dp" android:background="@color/divider" />
+
+                <Button
+                    android:id="@+id/btnReplay"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:gravity="center_vertical|start"
+                    android:layout_marginTop="4dp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:drawableStart="@drawable/ic_replay"
+                    android:drawableTint="@color/brand"
+                    android:drawablePadding="14dp"
+                    android:drawableEnd="@drawable/ic_chevron_right"
+                    android:text="@string/detail_replay"
+                    android:textColor="@color/brand"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:stateListAnimator="@null"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

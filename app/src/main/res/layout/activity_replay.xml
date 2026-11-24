@@ -21,13 +21,13 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_back"
             android:scaleType="centerInside"
-            android:contentDescription="返回" />
+            android:contentDescription="@string/desc_back" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
             android:text="@string/replay_title"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@color/brand"
             android:textSize="18sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -48,21 +48,21 @@
             <Button android:id="@+id/btnToday" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
                 android:text="@string/replay_today" android:textSize="13sp" android:stateListAnimator="@null"
                 android:background="@drawable/bg_date_tab" android:textColor="@color/text_date_tab"
-                android:textStyle="bold" />
+                 />
             <Button android:id="@+id/btnYesterday" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
                 android:layout_marginStart="10dp" android:text="@string/replay_yesterday" android:textSize="13sp" android:stateListAnimator="@null"
                 android:background="@drawable/bg_date_tab" android:textColor="@color/text_date_tab"
-                android:textStyle="bold" />
+                 />
             <Button android:id="@+id/btnWeek" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
                 android:layout_marginStart="10dp" android:text="@string/replay_week" android:textSize="13sp" android:stateListAnimator="@null"
                 android:background="@drawable/bg_date_tab" android:textColor="@color/text_date_tab"
-                android:textStyle="bold" />
+                 />
         </LinearLayout>
 
         <Button android:id="@+id/btnCustom" android:layout_width="match_parent" android:layout_height="40dp"
             android:layout_marginTop="10dp" android:text="@string/replay_custom" android:textSize="13sp"
             android:stateListAnimator="@null" android:background="@drawable/bg_date_outline"
-            android:textColor="@color/brand" android:textStyle="bold" />
+            android:textColor="@color/brand"  />
 
         <!-- 自定义时间面板（精确到小时），默认隐藏 -->
         <LinearLayout
@@ -92,40 +92,69 @@
             </LinearLayout>
             <Button android:id="@+id/btnApply" android:layout_width="match_parent" android:layout_height="42dp"
                 android:layout_marginTop="12dp" android:text="@string/replay_apply" android:textSize="14sp"
-                android:stateListAnimator="@null" android:background="@drawable/selector_brand_button"
-                android:textColor="#FFFFFFFF" android:textStyle="bold" />
+                android:stateListAnimator="@null" android:background="@drawable/selector_outline_primary"
+                android:drawableStart="@drawable/ic_check" android:drawableTint="@color/brand"
+                android:drawablePadding="10dp" android:paddingStart="20dp" android:paddingEnd="20dp"
+                android:textColor="@color/brand"  />
         </LinearLayout>
     </LinearLayout>
 
+    <!-- 地图 + 悬浮播放控制条：控制条浮在地图底部，不再独占贴底一行，单手更好按 -->
     <FrameLayout
-        android:id="@+id/mapHolder"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
 
-    <TextView
-        android:id="@+id/tvReplayInfo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="10dp"
-        android:gravity="center"
-        android:textColor="@color/text_secondary"
-        android:textSize="12sp" />
+        <FrameLayout
+            android:id="@+id/mapHolder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp">
-        <SeekBar android:id="@+id/seekBar" android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:layout_gravity="center_vertical" />
-        <Button android:id="@+id/btnSpeed" android:layout_width="52dp" android:layout_height="42dp"
-            android:layout_marginStart="10dp" android:background="@drawable/selector_brand_button"
-            android:text="1x" android:textColor="#FFFFFFFF" android:textSize="13sp"
-            android:stateListAnimator="@null" />
-        <Button android:id="@+id/btnPlay" android:layout_width="90dp" android:layout_height="42dp"
-            android:layout_marginStart="10dp" android:background="@drawable/selector_brand_button"
-            android:text="@string/replay_play" android:textColor="#FFFFFFFF" android:textSize="14sp"
-            android:stateListAnimator="@null" />
-    </LinearLayout>
+        <!-- 悬浮玻璃控制卡：信息 + 进度 + 倍速 + 播放 -->
+        <LinearLayout
+            android:id="@+id/replayControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="12dp"
+            android:orientation="vertical"
+            android:background="@drawable/bg_nav_card"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="10dp">
+
+            <TextView
+                android:id="@+id/tvReplayInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="4dp"
+                android:gravity="center"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <SeekBar android:id="@+id/seekBar" android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_gravity="center_vertical" />
+                <Button android:id="@+id/btnSpeed" android:layout_width="52dp" android:layout_height="42dp"
+                    android:layout_marginStart="8dp" android:background="@drawable/selector_outline_primary"
+                    android:text="1x" android:textColor="@color/brand" android:textSize="13sp"
+                    android:stateListAnimator="@null" />
+                <Button android:id="@+id/btnPlay" android:layout_width="92dp" android:layout_height="42dp"
+                    android:layout_marginStart="8dp" android:background="@drawable/selector_outline_primary"
+                    android:drawableStart="@drawable/ic_play" android:drawableTint="@color/brand"
+                    android:drawablePadding="6dp" android:paddingStart="10dp" android:paddingEnd="8dp"
+                    android:text="@string/replay_play" android:textColor="@color/brand" android:textSize="14sp"
+                    android:stateListAnimator="@null" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
 </LinearLayout>

@@ -12,18 +12,21 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /**
- * 实时位置通道：WebSocket /api/socket?token=...
+ * 实时通道：WebSocket /api/socket?token=...
  *
- * Traccar 服务端推送两类 JSON：
+ * Traccar 服务端推送三类 JSON（官方 API：devices / positions / events 共用同一消息格式）：
  *   - {"devices":[...]}  设备状态变化
  *   - {"positions":[...]} 新位置
- * 与 Web 版 SocketController 一致，收到后回调到主线程刷新地图/列表。
+ *   - {"events":[...]}    告警/事件（实时推送告警走这里）
+ * 与 Web 版 SocketController 一致，收到后回调到主线程刷新地图/列表/通知。
+ * [onEvents] 默认空实现，历史调用方（只关心位置的地图页）无需改动。
  */
 class SocketController(
     private val api: Api,
     private val onDevices: (List<Device>) -> Unit,
     private val onPositions: (List<Position>) -> Unit,
     private val onState: (Boolean) -> Unit,
+    private val onEvents: (List<Event>) -> Unit = { },
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private val client = OkHttpClient.Builder()
@@ -44,18 +47,20 @@ class SocketController(
 
     private var retry = 0
 
+    @Synchronized
     fun connect() {
         if (running) return
         running = true
         open()
     }
 
+    @Synchronized
     private fun open() {
         if (!running) return
         val request = Request.Builder().url(api.socketUrl()).build()
         socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                retry = 0
+                synchronized(this@SocketController) { retry = 0 }
                 handler.post { onState(true) }
             }
 
@@ -71,6 +76,11 @@ class SocketController(
                         val arr = obj.getJSONArray("positions")
                         val list = (0 until arr.length()).map { Position.from(arr.getJSONObject(it)) }
                         handler.post { onPositions(list) }
+                    }
+                    if (obj.has("events")) {
+                        val arr = obj.getJSONArray("events")
+                        val list = (0 until arr.length()).map { Event.from(arr.getJSONObject(it)) }
+                        handler.post { onEvents(list) }
                     }
                 } catch (e: Exception) {
                     // 单条推送解析失败不应中断长连接，但要留下原始错误便于定位协议变更
@@ -99,6 +109,7 @@ class SocketController(
         })
     }
 
+    @Synchronized
     private fun scheduleReconnect() {
         if (!running) return
         retry += 1
@@ -109,6 +120,7 @@ class SocketController(
         }, delay)
     }
 
+    @Synchronized
     fun disconnect() {
         running = false
         socket?.close(1000, "logout")

@@ -43,6 +43,7 @@ object Glass {
         view: View,
         radiusDp: Float = 22f,
         @ColorRes tint: Int = R.color.surface,
+        elevationDp: Float = 10f,
     ) {
         val ctx = view.context
         view.background = android.graphics.drawable.ColorDrawable(
@@ -50,7 +51,8 @@ object Glass {
         )
         clipRound(view, radiusDp)
         // 投影：让浮层清晰浮起，文字更易读。配合 clipToOutline，阴影沿圆角轮廓投射。
-        view.elevation = 10f * view.resources.displayMetrics.density
+        // 传 0f 可关闭（地图悬浮按钮在深色底图上不需要投影，避免溢出图标范围）。
+        view.elevation = elevationDp * view.resources.displayMetrics.density
     }
 
     /**
@@ -63,18 +65,26 @@ object Glass {
         }
     }
 
-    /** 按压缩放反馈（90–140ms），保持点击仍可触发。系统开启「减少动态效果」时直接跳过动效。 */
-    fun pressScale(view: View, scale: Float = 0.94f, durationMs: Long = 110) {
-        if (reduceMotion(view.context)) return
+    /** 按压缩放反馈与轻微触觉反馈（90–140ms），保持点击仍可触发。系统开启「减少动态效果」时跳过缩放。 */
+    fun pressScale(view: View, scale: Float = 0.94f, durationMs: Long = 110, haptic: Boolean = true) {
+        val reduced = reduceMotion(view.context)
         view.setOnTouchListener { v, event ->
             when (event.action) {
-                MotionEvent.ACTION_DOWN ->
-                    v.animate().scaleX(scale).scaleY(scale).setDuration(durationMs).start()
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(durationMs).start()
+                MotionEvent.ACTION_DOWN -> {
+                    if (haptic) v.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                    if (!reduced) v.animate().scaleX(scale).scaleY(scale).setDuration(durationMs).start()
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (!reduced) v.animate().scaleX(1f).scaleY(1f).setDuration(durationMs).start()
+                }
             }
             false
         }
+    }
+
+    /** 触发系统级轻微震动触觉反馈（Tab 切换、操作确认等） */
+    fun hapticFeedback(view: View) {
+        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
     }
 
     // ---------------- 无障碍：减少动态效果 ----------------

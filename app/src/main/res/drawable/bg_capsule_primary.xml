@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 现代胶囊主操作按钮：石墨底 + 顶部细微高光渐变，胶囊圆角。
+     按压态用更深的 brand_dark，禁用态用浅容器色。日夜配色由 @color 自动切换。 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/brand_light" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <gradient android:angle="270" android:startColor="@color/brand" android:endColor="@color/brand_dark" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/brand" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</selector>

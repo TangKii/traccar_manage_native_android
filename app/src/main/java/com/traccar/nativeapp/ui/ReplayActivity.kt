@@ -13,7 +13,10 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.traccar.nativeapp.R
 import com.traccar.nativeapp.data.Api
@@ -34,9 +37,9 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
-import java.text.SimpleDateFormat
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
-import java.util.Locale
 
 /** 轨迹回放：选择日期（快捷/自定义精确到小时）→ 加载历史点位 → 画轨迹线 → 播放/拖拽查看沿途位置。 */
 class ReplayActivity : AppCompatActivity() {
@@ -71,6 +74,27 @@ class ReplayActivity : AppCompatActivity() {
     private var useCustom = false
     private var customFrom: Calendar? = null
     private var customTo: Calendar? = null
+    private var pickingTo = false   // 当前在选择 To（结束时间）还是 From
+
+    /** 沉浸式日期时间选择页：选完回填对应的 From/To */
+    private val dateTimeLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val millis = result.data?.getLongExtra(DateTimePickerActivity.EXTRA_RESULT_MILLIS, -1L) ?: -1L
+            if (millis >= 0) {
+                val cal = Calendar.getInstance().apply { timeInMillis = millis }
+                if (pickingTo) {
+                    customTo = cal
+                    findViewById<TextView>(R.id.tvTo).text = fmtPicker(cal)
+                } else {
+                    customFrom = cal
+                    findViewById<TextView>(R.id.tvFrom).text = fmtPicker(cal)
+                }
+                markCustomDirty()
+            }
+        }
+    }
 
     private val handler = Handler(Looper.getMainLooper())
     private var isPlaying = false
@@ -98,6 +122,17 @@ class ReplayActivity : AppCompatActivity() {
         mapHolder = findViewById(R.id.mapHolder)
         seekBar = findViewById(R.id.seekBar)
         btnPlay = findViewById(R.id.btnPlay)
+
+        // 悬浮播放控制卡避开系统手势条：把手势条高度叠加到卡片底部外边距
+        val replayControls = findViewById<View>(R.id.replayControls)
+        val controlsLp = replayControls.layoutParams as FrameLayout.LayoutParams
+        val baseBottomMargin = controlsLp.bottomMargin
+        ViewCompat.setOnApplyWindowInsetsListener(replayControls) { _, insets ->
+            val navBar = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            controlsLp.bottomMargin = baseBottomMargin + navBar
+            replayControls.layoutParams = controlsLp
+            insets
+        }
         btnToday = findViewById(R.id.btnToday)
         btnYesterday = findViewById(R.id.btnYesterday)
         btnWeek = findViewById(R.id.btnWeek)
@@ -111,8 +146,14 @@ class ReplayActivity : AppCompatActivity() {
         btnYesterday.setOnClickListener { selectQuick(1) }
         btnWeek.setOnClickListener { selectQuick(6) }
         btnCustom.setOnClickListener { toggleCustom() }
-        tvFrom.setOnClickListener { pickDateTime(this, customFrom) { customFrom = it; tvFrom.text = fmtPicker(it) ; markCustomDirty() } }
-        tvTo.setOnClickListener { pickDateTime(this, customTo) { customTo = it; tvTo.text = fmtPicker(it); markCustomDirty() } }
+        tvFrom.setOnClickListener {
+            pickingTo = false
+            dateTimeLauncher.launch(DateTimePickerActivity.intent(this, customFrom?.timeInMillis ?: System.currentTimeMillis()))
+        }
+        tvTo.setOnClickListener {
+            pickingTo = true
+            dateTimeLauncher.launch(DateTimePickerActivity.intent(this, customTo?.timeInMillis ?: System.currentTimeMillis()))
+        }
         findViewById<Button>(R.id.btnApply).setOnClickListener { applyCustom() }
         findViewById<Button>(R.id.btnSpeed).setOnClickListener {
             speedIdx = (speedIdx + 1) % speedSteps.size
@@ -139,7 +180,7 @@ class ReplayActivity : AppCompatActivity() {
                     userCameraUntil = System.currentTimeMillis() + 3000L
                 }
             })
-            map.setStyle(MapStyles.builderFor(prefs.mapStyle))
+            map.setStyle(MapStyles.builderFor(prefs.mapStyle, isNightMode(this)))
         }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -203,10 +244,6 @@ class ReplayActivity : AppCompatActivity() {
     }
 
     private fun dayRange(dayOffset: Int): Pair<String, String> {
-        // Traccar 要求 ISO-8601 带 'Z'（UTC）后缀，否则解析为 null。用本地零点边界 + UTC 格式化。
-        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }
         val from = java.util.Calendar.getInstance().apply {
             add(Calendar.DAY_OF_MONTH, -dayOffset)
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
@@ -217,7 +254,7 @@ class ReplayActivity : AppCompatActivity() {
             if (dayOffset != QUICK_WEEK) add(Calendar.DAY_OF_MONTH, -dayOffset)
             set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59)
         }
-        return fmt.format(from.time) to fmt.format(to.time)
+        return isoUtc(from) to isoUtc(to)
     }
 
     private fun loadTrack(from: String, to: String) {
@@ -412,8 +449,10 @@ class ReplayActivity : AppCompatActivity() {
     private fun lerp(a: LatLng, b: LatLng, f: Double): LatLng =
         LatLng(a.latitude + (b.latitude - a.latitude) * f, a.longitude + (b.longitude - a.longitude) * f)
 
-    private fun fmtPicker(cal: Calendar): String =
-        SimpleDateFormat("yyyy-MM-dd HH:00", Locale.US).format(cal.time)
+    private val pickerFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:00")
+        .withZone(ZoneId.systemDefault())
+
+    private fun fmtPicker(cal: Calendar): String = pickerFormatter.format(cal.toInstant())
 
     private fun makeDotBitmap(): Bitmap {
         val size = 44

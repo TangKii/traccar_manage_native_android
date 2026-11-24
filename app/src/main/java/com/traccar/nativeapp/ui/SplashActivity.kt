@@ -5,6 +5,11 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
+import android.view.animation.AnimationSet
+import android.view.animation.ScaleAnimation
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.traccar.nativeapp.R
@@ -16,67 +21,111 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /**
- * 启动分流（对应草案页面原型）：
+ * 品牌开屏 + 启动分流：
  *   未配置服务器 → SetupActivity
  *   已配置但未登录 → LoginActivity
  *   已登录（且勾选自动登录）→ 校验 token 后直接进 MainActivity，否则回登录页
- * 并在启动前展示上一次崩溃日志（如有），便于无电脑抓 logcat 时反馈。
+ *
+ * 开屏画面（[activity_splash]）先展示，路由校验（含 token 网络探测）与「最短展示时长」
+ * 并行进行，两者都完成后才跳转——既不会因校验慢而黑屏干等，也不会一闪而过。
+ * 若存在上次崩溃日志，先进提示，关闭后照常分流。
  */
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val prefs by lazy { Prefs(this) }
+    private var crashFile: File? = null
+
+    /** 崩溃日志确认页：关闭后删除日志并继续启动分流 */
+    private val crashConfirmLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) {
+        crashFile?.delete()
+        crashFile = null
+        startRouting()
+    }
+    /** 开屏最短展示时长：让品牌画面有存在感，同时不明显拖慢启动 */
+    private val minShowMs = 900L
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_splash)
+        playLogoAnimation()
 
-        val crashFile = File(filesDir, "crash.log")
-        if (crashFile.exists()) {
+        val crash = File(filesDir, "crash.log")
+        if (crash.exists()) {
             val text = try {
-                crashFile.readText().takeLast(4000)
+                crash.readText().takeLast(4000)
             } catch (e: Exception) {
                 android.util.Log.w("Splash", "读取崩溃日志失败", e)
                 ""
             }
             if (text.isNotEmpty()) {
-                android.app.AlertDialog.Builder(this)
-                    .setTitle(getString(R.string.crash_log_title))
-                    .setMessage(text)
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        crashFile.delete()
-                        proceedRouting()
-                    }
-                    .setCancelable(false)
-                    .show()
+                crashFile = crash
+                crashConfirmLauncher.launch(
+                    ConfirmActivity.intent(
+                        host = this,
+                        title = getString(R.string.crash_log_title),
+                        heading = getString(R.string.crash_log_title),
+                        message = text,
+                        positive = getString(android.R.string.ok),
+                        single = true,
+                        iconRes = R.drawable.ic_warning,
+                    )
+                )
                 return
             }
         }
-        proceedRouting()
+        startRouting()
     }
 
-    private fun proceedRouting() {
-        val prefs = Prefs(this)
-        when {
-            !prefs.isConfigured -> go(SetupActivity::class.java, clear = true)
-            !prefs.isLoggedIn -> go(LoginActivity::class.java, clear = true)
-            !prefs.autoLogin -> go(LoginActivity::class.java, clear = true)
-            else -> {
-                // 自动登录：用现有 token 探测会话。
-                // 关键：只有“鉴权失败(401，token 确实过期/无效)”才清 token 回登录页；
-                // 网络抖动、冷启动网络未就绪等其它异常不要清 token，直接进主页由主页重试，
-                // 否则一次瞬时网络失败就会把“自动登录”永久废除（之前的根因）。
-                lifecycleScope.launch {
-                    when (val state = validateToken(prefs)) {
-                        TokenState.VALID ->
-                            Handler(Looper.getMainLooper()).post { go(MainActivity::class.java, clear = true) }
-                        TokenState.INVALID ->
-                            Handler(Looper.getMainLooper()).post {
-                                prefs.logout()
-                                go(LoginActivity::class.java, clear = true)
-                            }
-                        TokenState.NETWORK_ERROR ->
-                            // token 可能仍有效，直接进主页，主页会重新加载/重试
-                            Handler(Looper.getMainLooper()).post { go(MainActivity::class.java, clear = true) }
-                    }
-                }
+    /** Logo 轻微放大淡入，让开屏不是一张死图 */
+    private fun playLogoAnimation() {
+        val logo = findViewById<android.view.View>(R.id.splashLogo) ?: return
+        logo.alpha = 0f
+        val set = AnimationSet(true).apply {
+            fillAfter = true
+            addAnimation(AlphaAnimation(0f, 1f).apply { duration = 500 })
+            addAnimation(ScaleAnimation(0.86f, 1f, 0.86f, 1f,
+                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f).apply { duration = 600 })
+        }
+        logo.startAnimation(set)
+    }
+
+    /**
+     * 路由校验与最短展示时长并行：谁慢等谁。
+     * 无网/慢网时 validateToken 最多重试一次（约 800ms），不会无限等待。
+     */
+    private fun startRouting() {
+        val startedAt = System.currentTimeMillis()
+        lifecycleScope.launch {
+            val decision = decideRoute()
+            val elapsed = System.currentTimeMillis() - startedAt
+            if (elapsed < minShowMs) delay(minShowMs - elapsed)
+            mainHandler.post { applyRoute(decision) }
+        }
+    }
+
+    private sealed interface Route {
+        data class Go(val target: Class<*>, val clear: Boolean = true, val logout: Boolean = false) : Route
+    }
+
+    private suspend fun decideRoute(): Route = when {
+        !prefs.isConfigured -> Route.Go(SetupActivity::class.java)
+        !prefs.isLoggedIn -> Route.Go(LoginActivity::class.java)
+        !prefs.autoLogin -> Route.Go(LoginActivity::class.java)
+        else -> when (validateToken(prefs)) {
+            TokenState.VALID, TokenState.NETWORK_ERROR -> Route.Go(MainActivity::class.java)
+            TokenState.INVALID -> Route.Go(LoginActivity::class.java, logout = true)
+        }
+    }
+
+    private fun applyRoute(route: Route) {
+        when (route) {
+            is Route.Go -> {
+                if (route.logout) prefs.logout()
+                go(route.target, route.clear)
             }
         }
     }
@@ -87,7 +136,9 @@ class SplashActivity : AppCompatActivity() {
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         startActivity(intent)
+        // 交叉淡入淡出，避免开屏与目标页之间闪一下黑底
         finish()
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
     private enum class TokenState { VALID, INVALID, NETWORK_ERROR }
@@ -95,7 +146,7 @@ class SplashActivity : AppCompatActivity() {
     /**
      * 探测 token 是否有效：
      * - 成功 → VALID
-     * - HTTP 401（鉴权失败）→ INVALID，需重新登录
+     * - HTTP 401/404（鉴权失败或会话不存在）→ INVALID，需重新登录
      * - 其它异常（网络/服务器）→ NETWORK_ERROR，不视为登录失效
      * 冷启动时第一次网络请求常因网络未就绪失败，这里重试一次以降噪。
      */
@@ -105,11 +156,8 @@ class SplashActivity : AppCompatActivity() {
                 Api(prefs).currentUser()
                 return TokenState.VALID
             } catch (e: ApiException) {
-                // 401：token 失效；404：OpenAPI 对 GET /session 定义的“会话不存在”，
-                // 同样说明当前 token 不可用，必须清掉后回登录页，不能带病进主页。
                 if (e.code == 401 || e.code == 404) return TokenState.INVALID
             } catch (e: Exception) {
-                // 连接异常（超时/无网络/域名解析失败等）：保留 token，主页会重试
                 android.util.Log.d("Splash", "token 校验网络异常（第 ${attempt + 1} 次）", e)
             }
             if (attempt == 0) delay(800)

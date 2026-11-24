@@ -60,7 +60,7 @@ class TripMapActivity : AppCompatActivity() {
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync { map ->
             maplibreMap = map
-            map.setStyle(MapStyles.builderFor("autoNavi")) {
+            map.setStyle(MapStyles.builderFor("autoNavi", isNightMode(this))) {
                 loadRoute(deviceId, from, to, tvDetail)
             }
         }

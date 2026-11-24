@@ -8,6 +8,7 @@ import java.util.TimeZone
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 // 构建版本号：默认按北京时间「yyMMddHH」生成，保证每次发版单调递增；
@@ -83,6 +84,11 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -100,6 +106,16 @@ dependencies {
 
     // 地图引擎：与 Traccar Web 同源的 MapLibre GL Native
     implementation("org.maplibre.gl:android-sdk:11.8.0")
+
+    // Jetpack Compose（对齐 Jiumi 的设计语言，BOM 2024.12.01）
+    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
+    implementation("androidx.compose.foundation:foundation")
+    debugImplementation("androidx.compose.ui:ui-tooling")
 
     // 纯 JVM 单元测试（坐标转换 / 围栏解析 / 单位换算 / 网络策略）
     testImplementation("junit:junit:4.13.2")
